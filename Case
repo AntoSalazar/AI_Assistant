@@ -1,0 +1,46 @@
+"Asistente personal con IA generativa para atencion al cliente y ventas en whatsapp"
+
+Descripcion del proyecto
+
+El presente proyecto tiene como finalidad el diseño y desarrollo de un asistente perosnal basado en inteligencia artificial generativa para la atencion al cliente y ventas, implementando en la plataforma de whatsapp. Este asistente esta diseñado para mejorar la experiencia del usuario, agilizar procesos de atencion y optimizar la conversion de ventas mediante respuestas automatizadas y personalizadas en tiempo real.
+
+Objetivo General
+
+Desarrollar un asistente virtual con IA Generativa que automatice la atencion al cliente y facilite el proceso de ventas a traves de whatsapp, optimizando tiempos de respuesta y mejorando la satisfaccion del usuario
+
+Objetivos especificos
+
+1. Analizar los requerimientos y necesidades de los usuarios para garantizar un diseño eficiente del asistente
+2. Diseñar la arquitectura del asistente integrando IA generativa para la comprension y generacion de respuestas naturales
+3. Implementar y entrenar el modelo de IA con datos relevantes para garantizar respuestas precisas y coherentes 
+4. Integrar el asistente con la API de whatsapp para su correcta operacion en la plataforma
+5. Evaluar el desempeño del asistente mediante pruebas de interaccion con usuarios y optimizar su rendimiento con base en retroalimentacion y datos analiticos
+
+Metodologia
+
+Para el desarrollo del asistente se utilizara la metologia SCRUM, debido a su enfoque iterativo e incremental. Se dividira el proyecto en sprints de desarrollo con las siguientes fases:
+
+1. Planificacion: Definicion de requerimientos y objetivos del asistente
+2. Diseño: CReacion de la arquitectura del chatbot, dialogos y flujo conversacional 
+3. Desarrollo: Implementacion del asistente con IA generativa y su integracion con whatsapp
+4. Pruebas: EValuacion de la precision y efectividad de respuestas en interacciones reales
+5. Despliegue y optimizacion: Implementacion en ambiente de produccion y mejora continua basada en retroalimentacion de usuarios
+
+Herramientas(Suegerencias)
+
+1. Lenguajes y frameworks: Python, Node.js
+2. IA generativa: OPENAI GPT-4, Llama 2 o similares
+3. API de mensajeria: Whatsapp Bussines API(Twilio o Meta API)
+4. Bases de datos: PostgresSQL o Firebase
+5. Infraestructura en la nube: AWS, Google Cloud o Azure
+6. Plataforma de Analitica: Google Analytics, POwer BI
+
+Componentes del proyecto
+
+1. Modulo de Procesamiento de Lenguaje Natural: Permite la interpretacion y generacion de respuestas en lenguaje natural
+2. Base de conocimiento: COntiene informacion sobre productos, politicas de la empresa y preguntas frecuentes
+3. Integracion con whatsapp: Conectividad con la API de whatsapp para recibir y enviar mensajes
+4. Panel de administracion: INterfaz para configurar respuestas, entrenar al modelo y visualizar estadisticas de uso
+5. Sistema de analisis y reportes: Permite medir la efectividad del asistente y mejorar su rendimiento con base en datso recopilados
+
+Este proyecto busca mejorar la atencion al cliente, incrementar las ventas y optimizar los tiempos de respuesta mediante la implmenentaciion de inteligencia artificial en whatsapp

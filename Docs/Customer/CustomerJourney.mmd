@@ -1,0 +1,50 @@
+stateDiagram-v2
+    [*] --> Initial: User sends first message
+    
+    Initial --> GreetingState: Assistant introduces itself
+    
+    GreetingState --> IntentDetection: User responds
+    
+    IntentDetection --> ProductInquiry: Product information requested
+    IntentDetection --> SupportQuery: Support assistance needed
+    IntentDetection --> OrderStatus: Order tracking requested
+    IntentDetection --> GeneralQuestion: General information requested
+    
+    ProductInquiry --> ProductInformation: Provide product details
+    ProductInformation --> ProductRecommendation: Suggest related products
+    ProductRecommendation --> PurchaseIntent: User shows interest
+    
+    PurchaseIntent --> PaymentProcess: Process transaction
+    PurchaseIntent --> FollowUp: Schedule follow-up
+    
+    SupportQuery --> ProblemIdentification: Identify issue
+    ProblemIdentification --> SolutionProvision: Provide solution
+    ProblemIdentification --> ComplexIssue: Issue requires human
+    
+    ComplexIssue --> HumanEscalation: Transfer to agent
+    SolutionProvision --> ResolutionCheck: Verify resolution
+    
+    OrderStatus --> OrderLookup: Retrieve order information
+    OrderLookup --> OrderUpdate: Provide status update
+    
+    OrderUpdate --> AdditionalAssistance: Offer more help
+    ResolutionCheck --> AdditionalAssistance: Offer more help
+    
+    GeneralQuestion --> InformationRetrieval: Search knowledge base
+    InformationRetrieval --> InformationDelivery: Provide information
+    InformationDelivery --> FollowUpQuestions: Address follow-ups
+    
+    FollowUpQuestions --> IntentDetection: New intent detected
+    
+    HumanEscalation --> [*]: Conversation transferred
+    PaymentProcess --> Confirmation: Confirm purchase
+    Confirmation --> ThankYou: Thank user
+    FollowUp --> ThankYou: Thank user
+    AdditionalAssistance --> ClosingState: User declines more help
+    
+    ThankYou --> ClosingState: End conversation
+    ClosingState --> [*]: Conversation ended
+    
+    state "User Feedback Collection" as FeedbackState
+    ClosingState --> FeedbackState: Request feedback
+    FeedbackState --> [*]: Feedback collected

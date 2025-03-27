@@ -1,0 +1,52 @@
+flowchart TB
+    subgraph Client["Client Side"]
+        User["User"] --> WhatsApp["WhatsApp Application"]
+    end
+
+    subgraph Integration["Integration Layer"]
+        WhatsApp <--> WhatsAppAPI["WhatsApp Business API"]
+        WhatsAppAPI <--> MessageHandler["Message Handler Service"]
+    end
+
+    subgraph Core["Core AI System"]
+        MessageHandler <--> ConversationManager["Conversation Manager"]
+        ConversationManager <--> ContextTracker["Context Tracker"]
+        ConversationManager <--> IntentClassifier["Intent Classifier"]
+        ConversationManager <--> LLMService["LLM Service (GPT-4/LLaMA 2)"]
+        LLMService <--> PromptManager["Prompt Engineering Manager"]
+        LLMService <--> RagSystem["Retrieval Augmented Generation"]
+    end
+
+    subgraph Knowledge["Knowledge & Data Layer"]
+        RagSystem <--> VectorDB["Vector Database"]
+        VectorDB <--> KnowledgeBase["Knowledge Base"]
+        IntentClassifier <--> BusinessRules["Business Rules Engine"]
+        BusinessRules <--> BackendIntegration["Backend Integration Service"]
+    end
+
+    subgraph Integrations["Enterprise Integrations"]
+        BackendIntegration <--> CRM["CRM System"]
+        BackendIntegration <--> ProductCatalog["Product Catalog"]
+        BackendIntegration <--> OrderSystem["Order Management"]
+    end
+
+    subgraph Analytics["Analytics & Monitoring"]
+        ConversationManager --> AnalyticsEngine["Analytics Engine"]
+        AnalyticsEngine --> Dashboard["Admin Dashboard"]
+        AnalyticsEngine --> ReportingService["Reporting Service"]
+        AnalyticsEngine --> ModelTraining["Model Training & Improvement"]
+        ModelTraining --> LLMService
+    end
+
+    subgraph HumanSupport["Human Support"]
+        ConversationManager <--> EscalationService["Escalation Service"]
+        EscalationService <--> AgentInterface["Human Agent Interface"]
+        AgentInterface <--> Agent["Customer Support Agent"]
+    end
+
+    style Core fill:#f9f,stroke:#333,stroke-width:2px
+    style Knowledge fill:#bbf,stroke:#333,stroke-width:2px
+    style Integration fill:#bfb,stroke:#333,stroke-width:2px
+    style Integrations fill:#fbb,stroke:#333,stroke-width:2px
+    style Analytics fill:#fbf,stroke:#333,stroke-width:2px
+    style HumanSupport fill:#ffb,stroke:#333,stroke-width:2px

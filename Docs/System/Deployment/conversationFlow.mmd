@@ -1,0 +1,47 @@
+sequenceDiagram
+    participant U as User
+    participant W as WhatsApp API
+    participant M as Message Handler
+    participant C as Conversation Manager
+    participant I as Intent Classifier
+    participant L as LLM Service
+    participant R as RAG System
+    participant K as Knowledge Base
+    participant B as Business Rules
+    participant E as Escalation Service
+    participant A as Human Agent
+
+    U->>W: Sends message
+    W->>M: Forwards message
+    M->>C: Processes message
+    C->>C: Updates conversation context
+    C->>I: Determines intent
+    
+    alt FAQ or Knowledge Query
+        I->>R: Request relevant information
+        R->>K: Search knowledge base
+        K->>R: Return relevant documents
+        R->>L: Provide context and documents
+        L->>C: Generate response with context
+    else Customer Support Request
+        I->>B: Check business rules
+        B->>L: Provide handling instructions
+        L->>C: Generate support response
+    else Purchase Intent
+        I->>B: Check product information
+        B->>L: Provide product details
+        L->>C: Generate sales-oriented response
+    else Complex Query
+        I->>E: Escalate to human support
+        E->>A: Alert agent and provide context
+        A->>C: Human agent takes over
+    end
+    
+    C->>M: Format response
+    M->>W: Send to WhatsApp API
+    W->>U: Deliver response to user
+    
+    alt Feedback Collection
+        C->>C: Log conversation
+        C->>C: Analyze for improvement
+    end

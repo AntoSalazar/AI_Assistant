@@ -1,0 +1,114 @@
+flowchart TB
+    subgraph AdminPortal["Admin Portal"]
+        AdminLogin["Admin Login & Authentication"]
+        AdminLogin --> AdminDashboard["Main Dashboard"]
+        
+        AdminDashboard --> Analytics["Analytics & Reporting"]
+        AdminDashboard --> ConversationMgmt["Conversation Management"]
+        AdminDashboard --> KnowledgeBase["Knowledge Base Management"]
+        AdminDashboard --> UserMgmt["User Management"]
+        AdminDashboard --> Settings["System Settings"]
+        AdminDashboard --> LLMConfig["LLM Configuration"]
+    end
+    
+    subgraph AnalyticsUI["Analytics & Reporting UI"]
+        Analytics --> PerformanceMetrics["Performance Metrics"]
+        Analytics --> ConversationAnalytics["Conversation Analytics"]
+        Analytics --> UserInsights["User Insights"]
+        Analytics --> SalesReports["Sales Reports"]
+        Analytics --> CustomReports["Custom Reports Builder"]
+        
+        PerformanceMetrics --> MetricsVisuals["Interactive Visualizations"]
+        ConversationAnalytics --> HeatmapView["Conversation Heatmap"]
+        ConversationAnalytics --> TopicClusters["Topic Clustering View"]
+        UserInsights --> UserSegments["User Segmentation"]
+        SalesReports --> ConversionFunnel["Conversion Funnel"]
+    end
+    
+    subgraph ConversationUI["Conversation Management UI"]
+        ConversationMgmt --> LiveMonitoring["Live Conversation Monitor"]
+        ConversationMgmt --> ConversationHistory["Conversation History"]
+        ConversationMgmt --> HumanTakeover["Human Takeover Interface"]
+        ConversationMgmt --> QualityReview["Quality Review Panel"]
+        
+        LiveMonitoring --> ActiveChats["Active Chats List"]
+        LiveMonitoring --> RealTimeMetrics["Real-time Metrics"]
+        ConversationHistory --> SearchFilter["Search & Filter Tools"]
+        ConversationHistory --> BatchActions["Batch Actions"]
+        HumanTakeover --> AgentAssignment["Agent Assignment"]
+        HumanTakeover --> TransferQueue["Transfer Queue"]
+        QualityReview --> FeedbackCollection["Feedback Collection"]
+    end
+    
+    subgraph KnowledgeUI["Knowledge Base UI"]
+        KnowledgeBase --> ContentManager["Content Manager"]
+        KnowledgeBase --> FAQEditor["FAQ Editor"]
+        KnowledgeBase --> ProductCatalog["Product Catalog"]
+        KnowledgeBase --> ResponseTemplates["Response Templates"]
+        KnowledgeBase --> KnowledgeInsights["Knowledge Insights"]
+        
+        ContentManager --> CategoryManager["Category Management"]
+        ContentManager --> ContentEditor["Rich Text Editor"]
+        ContentManager --> ContentVersion["Version Control"]
+        FAQEditor --> QuestionPairs["Question-Answer Pairs"]
+        ProductCatalog --> ProductEditor["Product Editor"]
+        ResponseTemplates --> TemplateBuilder["Template Builder"]
+        KnowledgeInsights --> ContentGaps["Content Gaps Analyzer"]
+    end
+    
+    subgraph SettingsUI["Settings UI"]
+        Settings --> GeneralSettings["General Settings"]
+        Settings --> IntegrationConfig["Integration Configuration"]
+        Settings --> WhatsAppConfig["WhatsApp Configuration"]
+        Settings --> NotificationSettings["Notification Settings"]
+        Settings --> SecuritySettings["Security Settings"]
+        
+        IntegrationConfig --> APIManagement["API Management"]
+        WhatsAppConfig --> MessageTemplates["Message Templates"]
+        WhatsAppConfig --> BusinessProfile["Business Profile"]
+        SecuritySettings --> RolePermissions["Role & Permissions"]
+    end
+    
+    subgraph LLMUI["LLM Configuration UI"]
+        LLMConfig --> PromptManagement["Prompt Management"]
+        LLMConfig --> ModelParameters["Model Parameters"]
+        LLMConfig --> TestingPlayground["Testing Playground"]
+        LLMConfig --> TrainingManagement["Training Management"]
+        
+        PromptManagement --> PromptEditor["Prompt Template Editor"]
+        PromptManagement --> PromptLibrary["Prompt Library"]
+        ModelParameters --> ParameterTuning["Parameter Tuning"]
+        TestingPlayground --> PromptTesting["Prompt Testing Console"]
+        TrainingManagement --> DatasetManager["Dataset Manager"]
+        TrainingManagement --> TrainingJobs["Training Jobs"]
+    end
+    
+    subgraph UserMgmtUI["User Management UI"]
+        UserMgmt --> CustomerDatabase["Customer Database"]
+        UserMgmt --> AgentManagement["Agent Management"]
+        UserMgmt --> AdminManagement["Admin Management"]
+        
+        CustomerDatabase --> UserProfiles["User Profiles"]
+        CustomerDatabase --> Segmentation["Segmentation Tools"]
+        AgentManagement --> AgentProfiles["Agent Profiles"]
+        AgentManagement --> PerformanceTracking["Performance Tracking"]
+        AdminManagement --> AdminRoles["Admin Roles"]
+    end
+    
+    subgraph BackendSystems["Backend Systems"]
+        DBService["Database Service"]
+        AnalyticsEngine["Analytics Engine"]
+        APIService["API Service"]
+        AuthService["Authentication Service"]
+    end
+    
+    AdminPortal <--> BackendSystems
+    
+    style AdminPortal fill:#f5f5f5,stroke:#333,stroke-width:2px
+    style AnalyticsUI fill:#d1e7dd,stroke:#333,stroke-width:1px
+    style ConversationUI fill:#cfe2ff,stroke:#333,stroke-width:1px
+    style KnowledgeUI fill:#e2d9f3,stroke:#333,stroke-width:1px
+    style SettingsUI fill:#fff3cd,stroke:#333,stroke-width:1px
+    style LLMUI fill:#f8d7da,stroke:#333,stroke-width:1px
+    style UserMgmtUI fill:#d1ecf1,stroke:#333,stroke-width:1px
+    style BackendSystems fill:#ffd7d7,stroke:#333,stroke-width:1px

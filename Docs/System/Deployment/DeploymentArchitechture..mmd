@@ -1,0 +1,67 @@
+---
+config:
+  layout: elk
+---
+flowchart TB
+ subgraph Users["User Layer"]
+        WA["WhatsApp"]
+        User["End Users"]
+  end
+ subgraph APIGateway["API Gateway Layer"]
+        WAPI["WhatsApp Business API"]
+        Gateway["API Gateway"]
+  end
+ subgraph AppServer["Application Server"]
+        WebServer["Web Server"]
+        AppCache["Redis Cache"]
+  end
+ subgraph AIServices["AI Services"]
+        LLMService["LLM Service"]
+        RAGService["RAG Service"]
+        VectorDB["Vector Database"]
+  end
+ subgraph DataLayer["Database Layer"]
+        Database["PostgreSQL Database"]
+        ObjectStorage["Object Storage"]
+  end
+ subgraph Monitoring["Monitoring & Logging"]
+        Logger["Logging Service"]
+        Metrics["Metrics Collector"]
+        Monitor["Monitoring Dashboard"]
+  end
+ subgraph Cloud["Cloud Infrastructure"]
+        APIGateway
+        AppServer
+        AIServices
+        DataLayer
+        Monitoring
+  end
+ subgraph Integration["Enterprise Integration"]
+        IntegrationLayer["Integration Layer"]
+        CRM["CRM System"]
+        ERP["ERP System"]
+  end
+ subgraph Admin["Administration"]
+        Dashboard["Admin Dashboard"]
+  end
+    User --> WA
+    WA --> WAPI
+    WAPI --> Gateway
+    Gateway --> WebServer
+    WebServer --> AppCache & LLMService & RAGService & Database & Logger
+    RAGService --> VectorDB
+    VectorDB --> ObjectStorage
+    LLMService --> Metrics
+    Logger --> Monitor
+    Metrics --> Monitor
+    Database <--> IntegrationLayer
+    IntegrationLayer <--> CRM & ERP
+    Dashboard --> WebServer
+    style Cloud fill:#f5f5f5,stroke:#333,stroke-width:2px
+    style APIGateway fill:#d1e7dd,stroke:#333,stroke-width:1px
+    style AppServer fill:#cfe2ff,stroke:#333,stroke-width:1px
+    style AIServices fill:#e2d9f3,stroke:#333,stroke-width:1px
+    style DataLayer fill:#fff3cd,stroke:#333,stroke-width:1px
+    style Monitoring fill:#f8d7da,stroke:#333,stroke-width:1px
+    style Integration fill:#d1ecf1,stroke:#333,stroke-width:1px
+    style Admin fill:#ffd7d7,stroke:#333,stroke-width:1px

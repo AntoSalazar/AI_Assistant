@@ -1,0 +1,54 @@
+flowchart LR
+    subgraph DataIngestion["Data Ingestion"]
+        ProductData["Product Data"] --> Connector1["Data Connector"]
+        FAQs["FAQs & Support Docs"] --> Connector2["Data Connector"]
+        PoliciesRules["Policies & Rules"] --> Connector3["Data Connector"]
+        TrainingData["Training Conversations"] --> Connector4["Data Connector"]
+        
+        Connector1 & Connector2 & Connector3 & Connector4 --> Pipeline["ETL Pipeline"]
+    end
+    
+    subgraph DataProcessing["Data Processing"]
+        Pipeline --> Cleaner["Data Cleaning"]
+        Cleaner --> Transformer["Data Transformation"]
+        Transformer --> Chunker["Text Chunking"]
+        Chunker --> Embedder["Embedding Generation"]
+    end
+    
+    subgraph Storage["Storage Layer"]
+        Embedder --> VDB["Vector Database"]
+        Transformer --> RDB["Relational Database"]
+        Transformer --> Cache["Redis Cache"]
+    end
+    
+    subgraph Retrieval["Retrieval System"]
+        UserQuery["User Query"] --> QueryProcessor["Query Processor"]
+        QueryProcessor --> QueryEmbedder["Query Embedding"]
+        QueryEmbedder --> VectorSearch["Vector Search"]
+        VectorSearch --> VDB
+        VDB --> RelevantDocs["Relevant Documents"]
+        RelevantDocs --> ContextBuilder["Context Builder"]
+        ContextBuilder --> PromptCreator["Prompt Creator"]
+    end
+    
+    subgraph Response["Response Generation"]
+        PromptCreator --> LLM["LLM (GPT-4/LLaMA 2)"]
+        LLM --> ResponseValidator["Response Validator"]
+        ResponseValidator --> ResponseFormatter["Response Formatter"]
+        ResponseFormatter --> FinalResponse["Final Response to User"]
+    end
+    
+    subgraph Feedback["Feedback Loop"]
+        FinalResponse --> Logger["Conversation Logger"]
+        Logger --> Analytics["Analytics Engine"]
+        Analytics --> Insights["Insights Generator"]
+        Insights --> ModelTuner["Model Tuner"]
+        ModelTuner --> LLM
+    end
+    
+    style DataIngestion fill:#bfd,stroke:#333,stroke-width:1px
+    style DataProcessing fill:#adf,stroke:#333,stroke-width:1px
+    style Storage fill:#fda,stroke:#333,stroke-width:1px
+    style Retrieval fill:#daf,stroke:#333,stroke-width:1px
+    style Response fill:#fad,stroke:#333,stroke-width:1px
+    style Feedback fill:#dfa,stroke:#333,stroke-width:1px
