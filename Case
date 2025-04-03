@@ -1,46 +1,46 @@
-"Asistente personal con IA generativa para atencion al cliente y ventas en whatsapp"
+"Generative AI Personal Assistant for Customer Service and Sales on WhatsApp"
 
-Descripcion del proyecto
+Project Description
 
-El presente proyecto tiene como finalidad el diseño y desarrollo de un asistente perosnal basado en inteligencia artificial generativa para la atencion al cliente y ventas, implementando en la plataforma de whatsapp. Este asistente esta diseñado para mejorar la experiencia del usuario, agilizar procesos de atencion y optimizar la conversion de ventas mediante respuestas automatizadas y personalizadas en tiempo real.
+The purpose of this project is to design and develop a generative AI-based personal assistant for customer service and sales, implemented on the WhatsApp platform. This assistant is designed to improve the user experience, streamline customer service processes, and optimize sales conversion through automated and personalized responses in real time.
 
-Objetivo General
+General Objective
 
-Desarrollar un asistente virtual con IA Generativa que automatice la atencion al cliente y facilite el proceso de ventas a traves de whatsapp, optimizando tiempos de respuesta y mejorando la satisfaccion del usuario
+Develop a virtual assistant with Generative AI that automates customer service and facilitates the sales process through WhatsApp, optimizing response times and improving user satisfaction.
 
-Objetivos especificos
+Specific Objectives
 
-1. Analizar los requerimientos y necesidades de los usuarios para garantizar un diseño eficiente del asistente
-2. Diseñar la arquitectura del asistente integrando IA generativa para la comprension y generacion de respuestas naturales
-3. Implementar y entrenar el modelo de IA con datos relevantes para garantizar respuestas precisas y coherentes 
-4. Integrar el asistente con la API de whatsapp para su correcta operacion en la plataforma
-5. Evaluar el desempeño del asistente mediante pruebas de interaccion con usuarios y optimizar su rendimiento con base en retroalimentacion y datos analiticos
+1. Analyze user requirements and needs to ensure an efficient assistant design.
+2. Design the assistant's architecture, integrating generative AI to understand and generate natural responses.
+3. Implement and train the AI ​​model with relevant data to ensure accurate and consistent responses.
+4. Integrate the assistant with the WhatsApp API for proper operation on the platform.
+5. Evaluate the assistant's performance through user interaction tests and optimize its performance based on feedback and analytical data.
 
-Metodologia
+Methodology
 
-Para el desarrollo del asistente se utilizara la metologia SCRUM, debido a su enfoque iterativo e incremental. Se dividira el proyecto en sprints de desarrollo con las siguientes fases:
+The SCRUM methodology will be used for the development of the assistant, due to its iterative and incremental approach. The project will be divided into development sprints with the following phases:
 
-1. Planificacion: Definicion de requerimientos y objetivos del asistente
-2. Diseño: CReacion de la arquitectura del chatbot, dialogos y flujo conversacional 
-3. Desarrollo: Implementacion del asistente con IA generativa y su integracion con whatsapp
-4. Pruebas: EValuacion de la precision y efectividad de respuestas en interacciones reales
-5. Despliegue y optimizacion: Implementacion en ambiente de produccion y mejora continua basada en retroalimentacion de usuarios
+1. Planning: Defining the assistant's requirements and objectives
+2. Design: Creating the chatbot architecture, dialogs, and conversational flow
+3. Development: Implementing the assistant with generative AI and integrating it with WhatsApp
+4. Testing: Evaluating the accuracy and effectiveness of responses in real-life interactions
+5. Deployment and Optimization: Implementation in a production environment and continuous improvement based on user feedback
 
-Herramientas(Suegerencias)
+Tools (Suggestions)
 
-1. Lenguajes y frameworks: Python, Node.js
-2. IA generativa: OPENAI GPT-4, Llama 2 o similares
-3. API de mensajeria: Whatsapp Bussines API(Twilio o Meta API)
-4. Bases de datos: PostgresSQL o Firebase
-5. Infraestructura en la nube: AWS, Google Cloud o Azure
-6. Plataforma de Analitica: Google Analytics, POwer BI
+1. Languages ​​and frameworks: Python, Node.js
+2. Generative AI: OPENAI GPT-4, Llama 2, or similar
+3. Messaging API: WhatsApp Business API (Twilio or Meta API)
+4. Databases: PostgresSQL or Firebase
+5. Cloud infrastructure: AWS, Google Cloud, or Azure
+6. Analytics platform: Google Analytics, Power BI
 
-Componentes del proyecto
+Project Components
 
-1. Modulo de Procesamiento de Lenguaje Natural: Permite la interpretacion y generacion de respuestas en lenguaje natural
-2. Base de conocimiento: COntiene informacion sobre productos, politicas de la empresa y preguntas frecuentes
-3. Integracion con whatsapp: Conectividad con la API de whatsapp para recibir y enviar mensajes
-4. Panel de administracion: INterfaz para configurar respuestas, entrenar al modelo y visualizar estadisticas de uso
-5. Sistema de analisis y reportes: Permite medir la efectividad del asistente y mejorar su rendimiento con base en datso recopilados
+1. Natural Language Processing Module: Allows the interpretation and generation of responses in natural language.
+2. Knowledge Base: Contains information about products, company policies, and frequently asked questions.
+3. WhatsApp Integration: Connects to the WhatsApp API to receive and send messages.
+4. Administration Panel: Interface for configuring responses, training the model, and viewing usage statistics.
+5. Analysis and Reporting System: Allows measuring the assistant's effectiveness and improving its performance based on collected data.
 
-Este proyecto busca mejorar la atencion al cliente, incrementar las ventas y optimizar los tiempos de respuesta mediante la implmenentaciion de inteligencia artificial en whatsapp
+This project seeks to improve customer service, increase sales, and optimize response times by implementing artificial intelligence in WhatsApp.
