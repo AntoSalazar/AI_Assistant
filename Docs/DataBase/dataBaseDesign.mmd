@@ -1,0 +1,147 @@
+erDiagram
+    Users ||--o{ Conversations : initiates
+    Users ||--o{ UserSegments : belongs_to
+    Users {
+        int user_id PK
+        string first_name
+        string last_name
+        string email
+        string phone_number
+        string whatsapp_number
+        string location
+        timestamp created_at
+        timestamp last_active
+        enum status "active, inactive, blocked"
+        text notes
+    }
+    
+    UserSegments {
+        int segment_id PK
+        int user_id FK
+        enum segment_type "standard, premium, enterprise"
+        timestamp assigned_at
+        timestamp expires_at
+        string assigned_by
+    }
+    
+    Conversations ||--o{ Messages : contains
+    Conversations ||--o{ ConversationMetrics : has
+    Conversations {
+        int conversation_id PK
+        int user_id FK
+        timestamp start_time
+        timestamp end_time
+        string topic
+        enum status "active, resolved, escalated, abandoned"
+        string escalated_to
+        boolean ai_handled
+    }
+    
+    Messages {
+        int message_id PK
+        int conversation_id FK
+        enum sender_type "user, ai, agent"
+        text content
+        timestamp sent_at
+        string intent
+        float intent_confidence
+        json entities
+    }
+    
+    ConversationMetrics {
+        int metric_id PK
+        int conversation_id FK
+        float response_time_avg
+        float accuracy_score
+        int total_messages
+        int ai_messages
+        int user_messages
+        int agent_messages
+        boolean was_escalated
+        float sentiment_score
+    }
+    
+    KnowledgeBase ||--o{ KnowledgeBaseUsage : referenced_in
+    KnowledgeBase {
+        int kb_item_id PK
+        string title
+        text content
+        text content_vector "VECTOR storage using pgvector"
+        enum category "product, faq, policy, guide"
+        string status "active, draft, archived"
+        timestamp created_at
+        timestamp updated_at
+        string created_by
+    }
+    
+    KnowledgeBaseUsage {
+        int usage_id PK
+        int kb_item_id FK
+        int message_id FK
+        float relevance_score
+        timestamp used_at
+    }
+    
+    IntentAnalytics {
+        int intent_id PK
+        string intent_name
+        int occurrence_count
+        float avg_confidence
+        int escalation_count
+        timestamp last_detected
+        json sample_queries
+    }
+    
+    ContentGaps {
+        int gap_id PK
+        string missing_information
+        enum frequency "high, medium, low"
+        int detection_count
+        timestamp first_detected
+        timestamp last_detected
+        string status "open, in_progress, resolved"
+    }
+    
+    Agents ||--o{ Conversations : handles
+    Agents {
+        int agent_id PK
+        string first_name
+        string last_name
+        string email
+        string phone_number
+        enum department "technical, sales, customer_support"
+        enum status "online, offline, in_meeting"
+        float current_load
+        timestamp last_active
+    }
+    
+    AgentMetrics {
+        int metric_id PK
+        int agent_id FK
+        date metric_date
+        int conversations_handled
+        float avg_resolution_time
+        float customer_satisfaction
+        int escalations_received
+    }
+    
+    LLMModels {
+        int model_id PK
+        string model_name
+        string version
+        timestamp deployed_at
+        boolean is_active
+        json parameters
+        text system_prompt
+    }
+    
+    LLMPerformance {
+        int performance_id PK
+        int model_id FK
+        date metric_date
+        float avg_response_time
+        float avg_token_usage
+        float resolution_rate
+        float error_rate
+        json top_failing_intents
+    }

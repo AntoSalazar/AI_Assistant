@@ -1,0 +1,94 @@
+Database Schema Explanation
+User Management Tables
+
+Users
+
+Stores basic information about customers using the WhatsApp service
+Includes contact details, status, and activity timestamps
+Enables user segmentation and personalization
+
+
+UserSegments
+
+Tracks which segment each user belongs to (Standard, Premium, Enterprise)
+Maintains history of segment assignments with timestamps
+Supports time-based promotions or temporary segment changes
+
+
+Agents
+
+Stores information about human support agents
+Tracks agent status, department, and current workload
+Enables efficient routing of escalated conversations
+
+
+AgentMetrics
+
+Captures performance metrics for human agents
+Stores daily aggregated statistics
+Allows for performance evaluation and workload balancing
+
+
+
+Conversation Tracking Tables
+
+Conversations
+
+Core table tracking each conversation session
+Links users to their conversation history
+Captures important metadata like topic, status, and handling method
+
+
+Messages
+
+Stores the actual content of all messages
+Includes metadata such as intent classification and confidence
+Timestamps allow for timeline reconstruction
+
+
+ConversationMetrics
+
+Aggregated metrics for each conversation
+Captures response times, message counts, and accuracy
+Supports analytics and performance monitoring
+
+
+
+Knowledge Management Tables
+
+KnowledgeBase
+
+Stores all content used by the AI assistant
+Includes vector storage using pgvector for semantic search
+Categorizes content by type and maintains version history
+
+
+KnowledgeBaseUsage
+
+Tracks which knowledge items are used in conversations
+Records relevance scores for content retrieval performance
+Helps identify frequently used vs. unused content
+
+
+
+Analytics Tables
+
+IntentAnalytics
+
+Aggregates data about detected user intents
+Tracks frequency and confidence levels for each intent
+Stores sample queries for training purposes
+
+
+ContentGaps
+
+Identifies missing information in the knowledge base
+Prioritizes gaps by frequency of occurrence
+Tracks resolution status for content improvement
+
+
+LLMModels and LLMPerformance
+
+Track deployed models and their configurations
+Store performance metrics for different model versions
+Support A/B testing and model improvement
