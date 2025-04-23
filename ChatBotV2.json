@@ -1,0 +1,762 @@
+{
+  "meta": {
+    "instanceId": "whatsapp-ai-customer-service-assistant"
+  },
+  "nodes": [
+    {
+      "id": "77ee6494-4898-47dc-81d9-35daf6f0beea",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "position": [
+        340,
+        400
+      ],
+      "webhookId": "aaa71f03-f7af-4d18-8d9a-0afb86f1b554",
+      "parameters": {
+        "updates": [
+          "messages"
+        ]
+      },
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "H3uYNtpeczKMqtYm",
+          "name": "WhatsApp OAuth account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "87cf9b41-66de-49a7-aeb0-c8809191b5a0",
+      "name": "Handle Message Types",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        540,
+        400
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "Text Messages",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "text"
+                  }
+                ]
+              },
+              "renameOutput": true
+            },
+            {
+              "outputKey": "Other Messages",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "89971d8c-a386-4e77-8f6c-f491a8e84cb6",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "text"
+                  }
+                ]
+              },
+              "renameOutput": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "typeVersion": 3.2
+    },
+    {
+      "id": "b10a9c82-db8e-42cf-92ff-a4639a3a4cc0",
+      "name": "Check Customer Exists",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        740,
+        320
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM customers WHERE phone_number = '{{ $json.messages[0].from }}' LIMIT 1;",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "4bf96c0d-eb1a-4c7d-a58c-23a98d602c88",
+      "name": "Is New Customer?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        940,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.rows ? $json.rows.length : 0 }}",
+              "operation": "equal",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "a7c2501d-d378-4052-9786-a3ec8cd68a56",
+      "name": "Create New Customer",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1140,
+        240
+      ],
+      "parameters": {
+        "operation": "insert",
+        "table": "customers",
+        "schema": "public",
+        "columns": "phone_number,created_at,updated_at",
+        "returnFields": "id",
+        "additionalFields": {},
+        "valueDetails": {
+          "values": [
+            {
+              "column": "phone_number",
+              "type": "string",
+              "value": "={{ $json.messages[0].from }}"
+            },
+            {
+              "column": "created_at",
+              "type": "string",
+              "value": "=NOW()"
+            },
+            {
+              "column": "updated_at",
+              "type": "string",
+              "value": "=NOW()"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "d1f2c3e4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+      "name": "Update Existing Customer",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1140,
+        400
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customers SET total_interactions = total_interactions + 1, last_contact = NOW(), updated_at = NOW() WHERE phone_number = '{{ $json.messages[0].from }}' RETURNING id;",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "6089f6d5-33a1-43b2-8c04-51ddb3416ead",
+      "name": "Merge Customer Data",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        1340,
+        320
+      ],
+      "parameters": {
+        "mode": "passthrough",
+        "join": {
+          "output": "mergeByPosition"
+        },
+        "mergeByFields": {
+          "values": []
+        },
+        "options": {}
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "a7e99ff9-4ad9-408a-90a1-7183c92dedbe",
+      "name": "Prepare Customer Request",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        1540,
+        320
+      ],
+      "parameters": {
+        "functionCode": "// Enhanced customer info extraction\nconst output = [];\nconst item = {\n  json: {\n    customerData: {\n      id: $input.item.json.rows ? $input.item.json.rows[0].id : null,\n      phone: $input.item.json.messages[0].from,\n      messageId: $input.item.json.messages[0].id,\n      timestamp: new Date().toISOString(),\n      query: $input.item.json.messages[0].text.body,\n      isNewCustomer: $input.item.json.rows ? $input.item.json.rows.length === 0 : true,\n      totalInteractions: $input.item.json.rows && $input.item.json.rows[0].total_interactions ? $input.item.json.rows[0].total_interactions : 1\n    },\n    originalMessage: $input.item.json\n  }\n};\n\n// Check if we have extracted customer data from the database\nif ($input.item.json.rows && $input.item.json.rows.length > 0) {\n  const customerRecord = $input.item.json.rows[0];\n  item.json.customerData.name = customerRecord.name;\n  item.json.customerData.email = customerRecord.email;\n  item.json.customerData.address = customerRecord.address;\n  item.json.customerData.firstContact = customerRecord.created_at;\n}\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "c4f7e5d3-b2a1-4983-ac57-eb2c5d9f31a8",
+      "name": "Analyze Customer Intent",
+      "type": "n8n-nodes-base.openAi",
+      "position": [
+        1740,
+        320
+      ],
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system", 
+              "content": "You are an AI assistant that analyzes customer messages to determine their intent and sentiment. Your analysis should be brief and to the point. Please analyze the following message and return a JSON object with these fields:\n\n1. intent: The primary intent (question, complaint, purchase_inquiry, support_request, feedback, greeting, other)\n2. sentiment: The sentiment (positive, negative, neutral)\n3. keywords: Array of important keywords from the message\n4. requires_human: Boolean indicating if this requires human intervention\n5. product_interest: Array of any products or product categories mentioned or implied\n\nProvide ONLY the JSON response with no additional text."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.customerData.query }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 500
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "8gccIjcuf3gvaoEr",
+          "name": "OpenAi account"
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "a52b8394-c701-481d-b7ae-f6cd8e234f5d",
+      "name": "Process Analysis Results",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        1940,
+        320
+      ],
+      "parameters": {
+        "functionCode": "// Process analysis results and prepare for database\nconst output = [];\nconst item = {...$input.item};\n\n// Parse the analysis response\ntry {\n  const analysisText = $input.item.json.data.choices[0].message.content;\n  // Handle if response is already JSON or needs to be parsed\n  let analysis;\n  if (typeof analysisText === 'object') {\n    analysis = analysisText;\n  } else {\n    analysis = JSON.parse(analysisText);\n  }\n\n  // Add analysis to our data\n  item.json.analysis = {\n    intent: analysis.intent || 'unknown',\n    sentiment: analysis.sentiment || 'neutral',\n    keywords: analysis.keywords || [],\n    requiresHuman: analysis.requires_human || false,\n    productInterest: analysis.product_interest || []\n  };\n} catch (error) {\n  // Fallback if parsing fails\n  item.json.analysis = {\n    intent: 'unknown',\n    sentiment: 'neutral',\n    keywords: [],\n    requiresHuman: false,\n    productInterest: []\n  };\n  item.json.analysisError = error.message;\n}\n\n// Add system context for the AI\nlet systemContext = \"You are a helpful customer service and sales assistant. Your job is to assist customers in a friendly, professional manner.\";\n\n// Add customer context if available\nif (item.json.customerData.name) {\n  systemContext += ` You're speaking with ${item.json.customerData.name}, who has interacted with our service ${item.json.customerData.totalInteractions} times.`;\n} else {\n  systemContext += ` This appears to be a new customer. Please be extra helpful and welcoming.`;\n  \n  // If this seems like a real conversation (not just a greeting),\n  // consider asking for their name\n  if (item.json.analysis.intent !== 'greeting' && \n      item.json.customerData.totalInteractions > 1) {\n    systemContext += \" If appropriate in your response, you may politely ask for their name to personalize future interactions.\";\n  }\n}\n\n// Add intent-specific guidance\nswitch(item.json.analysis.intent) {\n  case 'question':\n    systemContext += \" The customer is asking a question. Provide a clear, helpful answer.\";\n    break;\n  case 'complaint':\n    systemContext += \" The customer appears to have a complaint. Be empathetic, apologize if appropriate, and try to address their concern.\";\n    break;\n  case 'purchase_inquiry':\n    systemContext += \" The customer is interested in making a purchase. Be helpful and encouraging.\";\n    if (item.json.analysis.productInterest && item.json.analysis.productInterest.length > 0) {\n      systemContext += ` They seem interested in: ${item.json.analysis.productInterest.join(', ')}.`;\n    }\n    break;\n  case 'support_request':\n    systemContext += \" The customer needs support. Try to help them or offer to connect them with appropriate resources.\";\n    break;\n}\n\nitem.json.systemContext = systemContext;\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "0a52d35e-e4ee-44d4-9b38-06f50fdca7a2",
+      "name": "Generate Customer Response",
+      "type": "n8n-nodes-base.openAi",
+      "position": [
+        2140,
+        320
+      ],
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system", 
+              "content": "={{ $json.systemContext }}"
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.customerData.query }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 1000
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "8gccIjcuf3gvaoEr",
+          "name": "OpenAi account"
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "f4e5d6c7-b8a9-4087-97d5-e6f7c8d9e0f1",
+      "name": "Extract Customer Details",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        2340,
+        320
+      ],
+      "parameters": {
+        "functionCode": "// Extract additional customer details from the conversation\nconst output = [];\nconst item = {...$input.item};\n\nconst messageBody = item.json.customerData.query;\nconst aiResponse = item.json.data.choices[0].message.content;\n\n// Store the AI response for use in later nodes\nitem.json.aiResponse = aiResponse;\n\n// Extract potential name (simple pattern matching)\nconst namePatterns = [\n  /my name is ([A-Za-z\\s\\.]+)/i,\n  /i am ([A-Za-z\\s\\.]+)/i,\n  /call me ([A-Za-z\\s\\.]+)/i,\n  /name[\\:\\s]+([A-Za-z\\s\\.]+)/i\n];\n\nlet extractedName = null;\nfor (const pattern of namePatterns) {\n  const nameMatch = messageBody.match(pattern);\n  if (nameMatch && nameMatch[1]) {\n    extractedName = nameMatch[1].trim();\n    break;\n  }\n}\n\n// Extract potential email\nconst emailPattern = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9._-]+)/i;\nlet extractedEmail = null;\nconst emailMatch = messageBody.match(emailPattern);\nif (emailMatch && emailMatch[1]) {\n  extractedEmail = emailMatch[1];\n}\n\n// Extract potential address (simple pattern)\nconst addressPatterns = [\n  /my address is ([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /i live at ([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /address[\\:\\s]+([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /location[\\:\\s]+([A-Za-z0-9\\s,\\.\\-\\#]+)/i\n];\n\nlet extractedAddress = null;\nfor (const pattern of addressPatterns) {\n  const addressMatch = messageBody.match(pattern);\n  if (addressMatch && addressMatch[1]) {\n    extractedAddress = addressMatch[1].trim();\n    break;\n  }\n}\n\n// Store extractedData for database updating\nitem.json.extractedData = {\n  name: extractedName,\n  email: extractedEmail,\n  address: extractedAddress,\n  // Also include any product interests from analysis\n  productInterests: item.json.analysis.productInterest || []\n};\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "a9b8c7d6-e5f4-4321-8765-4321a9b8c7d6",
+      "name": "Update Customer Data",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        2540,
+        320
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- This query updates any customer information that was extracted\nUPDATE customers\nSET \n    name = CASE WHEN '{{ $json.extractedData.name }}' != 'null' THEN '{{ $json.extractedData.name }}' ELSE name END,\n    email = CASE WHEN '{{ $json.extractedData.email }}' != 'null' THEN '{{ $json.extractedData.email }}' ELSE email END,\n    address = CASE WHEN '{{ $json.extractedData.address }}' != 'null' THEN '{{ $json.extractedData.address }}' ELSE address END,\n    last_contact = NOW(),\n    updated_at = NOW()\nWHERE phone_number = '{{ $json.customerData.phone }}';",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "d8c7b6a5-9e8f-4321-a9b8-c7d6e5f4a3b2",
+      "name": "Log Conversation",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        2740,
+        320
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Insert the conversation into the logs\nINSERT INTO conversations (customer_id, message_text, response_text, intent, sentiment, timestamp)\nVALUES (\n    (SELECT id FROM customers WHERE phone_number = '{{ $json.customerData.phone }}'),\n    '{{ $json.customerData.query }}',\n    '{{ $json.aiResponse }}',\n    '{{ $json.analysis.intent }}',\n    '{{ $json.analysis.sentiment }}',\n    NOW()\n);",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "e5f4a3b2-c7d6-4321-e5f4-a3b2c7d6e5f4",
+      "name": "Record Product Interests",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2940,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.extractedData.productInterests && $json.extractedData.productInterests.length > 0 }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "f4a3b2c7-d6e5-4321-f4a3-b2c7d6e5f4a3",
+      "name": "Update Product Interests",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        3140,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// This code would typically insert product interests for tracking\n// Here we'll just pass through for now, but in a real implementation\n// you would connect to a product catalog and create interest records\n\n// The interest data is stored in $input.item.json.extractedData.productInterests\nreturn $input.item;\n"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "1ae5a311-36d7-4454-ab14-6788d1331780",
+      "name": "Reply To Customer",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        3340,
+        320
+      ],
+      "parameters": {
+        "textBody": "={{ $json.aiResponse }}",
+        "operation": "send",
+        "phoneNumberId": "477115632141067",
+        "requestOptions": {},
+        "additionalFields": {
+          "previewUrl": false
+        },
+        "recipientPhoneNumber": "={{ $json.customerData.phone }}"
+      },
+      "credentials": {
+        "whatsAppApi": {
+          "id": "9SFJPeqrpChOkAmw",
+          "name": "WhatsApp account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "b6efba81-18b0-4378-bb91-51f39ca57f3e",
+      "name": "Reply - Unsupported Message",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        740,
+        520
+      ],
+      "parameters": {
+        "textBody": "I'm sorry, but I can only process text messages at the moment. Please send your question or request as text, and I'll be happy to assist you!",
+        "operation": "send",
+        "phoneNumberId": "477115632141067",
+        "requestOptions": {},
+        "additionalFields": {
+          "previewUrl": false
+        },
+        "recipientPhoneNumber": "={{ $json.messages[0].from }}"
+      },
+      "credentials": {
+        "whatsAppApi": {
+          "id": "9SFJPeqrpChOkAmw",
+          "name": "WhatsApp account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "9dd89378-5acf-4ca6-8d84-e6e64254ed02",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        540,
+        640
+      ],
+      "parameters": {},
+      "typeVersion": 1
+    },
+    {
+      "id": "3e5a112d-d0f8-4c19-82c7-8a62bd5e8af4",
+      "name": "Initialize Database",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        740,
+        640
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Create customers table\nCREATE TABLE IF NOT EXISTS customers (\n  id SERIAL PRIMARY KEY,\n  phone_number VARCHAR(20) UNIQUE NOT NULL,\n  name VARCHAR(100),\n  email VARCHAR(100),\n  address TEXT,\n  last_contact TIMESTAMP DEFAULT NOW(),\n  total_interactions INTEGER DEFAULT 1,\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);\n\n-- Create conversations table\nCREATE TABLE IF NOT EXISTS conversations (\n  id SERIAL PRIMARY KEY,\n  customer_id INTEGER REFERENCES customers(id),\n  message_text TEXT,\n  response_text TEXT,\n  intent VARCHAR(50),\n  sentiment VARCHAR(20),\n  timestamp TIMESTAMP DEFAULT NOW()\n);\n\n-- Create products table\nCREATE TABLE IF NOT EXISTS products (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(100) NOT NULL,\n  category VARCHAR(50),\n  description TEXT,\n  price DECIMAL(10, 2),\n  stock_status VARCHAR(20),\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);\n\n-- Create customer_interests table\nCREATE TABLE IF NOT EXISTS customer_interests (\n  id SERIAL PRIMARY KEY,\n  customer_id INTEGER REFERENCES customers(id),\n  product_id INTEGER REFERENCES products(id),\n  interest_level INTEGER,\n  first_expressed TIMESTAMP DEFAULT NOW(),\n  last_expressed TIMESTAMP DEFAULT NOW()\n);\n\n-- Create Indexes\nCREATE INDEX IF NOT EXISTS idx_customer_phone ON customers(phone_number);\nCREATE INDEX IF NOT EXISTS idx_conversation_customer ON conversations(customer_id);\nCREATE INDEX IF NOT EXISTS idx_customer_interests ON customer_interests(customer_id, product_id);",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "7a9b8c7d-e6f5-4321-a2b3-c4d5e6f7a8b9",
+      "name": "Human Intervention Check",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        3140,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.analysis.requiresHuman }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "b9a8c7d6-e5f4-3210-b9a8-c7d6e5f43210",
+      "name": "Notify Human Agent",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        3340,
+        480
+      ],
+      "parameters": {
+        "functionCode": "// This is a placeholder for human agent notification\n// In a real implementation, this would send an alert to a human\n// customer service representative through email, Slack, SMS, etc.\n\nconst output = [];\nconst item = {...$input.item};\n\n// Add human notification flag\nitem.json.humanNotification = {\n  sentAt: new Date().toISOString(),\n  customerPhone: item.json.customerData.phone,\n  customerName: item.json.customerData.name || 'Unknown',\n  issueType: item.json.analysis.intent,\n  message: item.json.customerData.query,\n  aiResponse: item.json.aiResponse\n};\n\nconsole.log('Human intervention required:', item.json.humanNotification);\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Handle Message Types",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Message Types": {
+      "main": [
+        [
+          {
+            "node": "Check Customer Exists",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply - Unsupported Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Customer Exists": {
+      "main": [
+        [
+          {
+            "node": "Is New Customer?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Customer?": {
+      "main": [
+        [
+          {
+            "node": "Create New Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Existing Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New Customer": {
+      "main": [
+        [
+          {
+            "node": "Merge Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Existing Customer": {
+      "main": [
+        [
+          {
+            "node": "Merge Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Customer Data": {
+      "main": [
+        [
+          {
+            "node": "Prepare Customer Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Customer Request": {
+      "main": [
+        [
+          {
+            "node": "Analyze Customer Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Customer Intent": {
+      "main": [
+        [
+          {
+            "node": "Process Analysis Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Analysis Results": {
+      "main": [
+        [
+          {
+            "node": "Generate Customer Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Customer Response": {
+      "main": [
+        [
+          {
+            "node": "Extract Customer Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Customer Details": {
+      "main": [
+        [
+          {
+            "node": "Update Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Customer Data": {
+      "main": [
+        [
+          {
+            "node": "Log Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Conversation": {
+      "main": [
+        [
+          {
+            "node": "Record Product Interests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Product Interests": {
+      "main": [
+        [
+          {
+            "node": "Update Product Interests",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Human Intervention Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Product Interests": {
+      "main": [
+        [
+          {
+            "node": "Reply To Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human Intervention Check": {
+      "main": [
+        [
+          {
+            "node": "Notify Human Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply To Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Human Agent": {
+      "main": [
+        [
+          {
+            "node": "Reply To Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Initialize Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
