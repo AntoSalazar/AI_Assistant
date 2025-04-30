@@ -1,7 +1,7 @@
 
 import { ReactNode } from 'react';
 
-export type ProductStatus = 'active' | 'pre-order' | 'sold-out';
+export type ProductStatus = 'active' | 'pre-order' | 'sold-out' | 'archived' | 'draft';
 
 export interface Product {
   id: string;
@@ -17,6 +17,8 @@ export interface Product {
   colors?: string[];
   aiResponse?: string;
 }
+
+
 
 export const getStatusColor = (status: ProductStatus) => {
   switch(status) {
