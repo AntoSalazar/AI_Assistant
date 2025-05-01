@@ -1,0 +1,69 @@
+Este diagrama de estados muestra el flujo de una conversación con un asistente virtual de servicio al cliente. Te lo explico paso a paso:
+Flujo de Conversación
+Inicio y Saludo
+
+Estado Inicial: Se inicia cuando el usuario envía su primer mensaje
+Estado de Saludo: El asistente se presenta al usuario
+Detección de Intención: El sistema analiza la respuesta del usuario para determinar su intención
+
+Cuatro Caminos Principales
+El sistema puede seguir cuatro rutas diferentes según la intención detectada:
+1. Consulta de Producto
+
+Información de Producto: El sistema proporciona detalles del producto solicitado
+Recomendación de Producto: Sugiere productos relacionados
+Intención de Compra: Si el usuario muestra interés, puede seguir dos caminos:
+
+Proceso de Pago: Procesa la transacción
+Seguimiento: Programa un seguimiento posterior
+
+
+
+2. Consulta de Soporte
+
+Identificación del Problema: El sistema identifica el problema del usuario
+Después de identificar el problema, hay dos posibilidades:
+
+Provisión de Solución: Proporciona una solución al problema
+Problema Complejo: Identifica que el problema requiere atención humana
+
+Escalación a Humano: Transfiere la conversación a un agente
+
+
+
+
+Verificación de Resolución: Comprueba si el problema ha sido resuelto
+
+3. Estado de Pedido
+
+Búsqueda de Pedido: Recupera la información del pedido
+Actualización de Pedido: Proporciona información sobre el estado actual
+
+4. Pregunta General
+
+Recuperación de Información: Busca en la base de conocimientos
+Entrega de Información: Proporciona la información solicitada
+Preguntas de Seguimiento: Aborda preguntas adicionales
+
+Si se detecta una nueva intención, regresa al estado de Detección de Intención
+
+
+
+Finalización de la Conversación
+
+Asistencia Adicional: Ofrece más ayuda después de resolver el problema inicial
+Confirmación: Confirma la compra (si procede)
+Agradecimiento: Agradece al usuario
+Estado de Cierre: Finaliza la conversación
+Recolección de Feedback: Solicita retroalimentación al usuario
+Estado Final: La conversación termina completamente
+
+Características del Diagrama
+
+Muestra claramente las transiciones entre diferentes estados de la conversación
+Ilustra cómo el sistema maneja diferentes tipos de consultas
+Define los puntos de decisión donde la conversación puede tomar diferentes caminos
+Incluye mecanismos para escalar a agentes humanos cuando es necesario
+Incorpora la recolección de feedback como parte del proceso
+
+Este diagrama es muy útil para entender el flujo completo de interacción entre un usuario y un asistente virtual, mostrando todos los posibles caminos que puede tomar una conversación dependiendo de las necesidades del usuario

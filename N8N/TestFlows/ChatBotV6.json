@@ -1,0 +1,1272 @@
+{
+  "name": "V4-Improved",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "2d2e777c-1e64-41ef-93f6-d62c1722a855",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "position": [
+        -2120,
+        420
+      ],
+      "webhookId": "aaa71f03-f7af-4d18-8d9a-0afb86f1b554",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "text"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Text Messages"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "89971d8c-a386-4e77-8f6c-f491a8e84cb6",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "text"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Other Messages"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2adb2ab5-e018-4d5f-ab0c-d668334af3a8",
+      "name": "Handle Message Types",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        -1940,
+        420
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM customers WHERE phone_number = '{{ $json.messages[0].from }}' LIMIT 1;",
+        "additionalFields": {}
+      },
+      "id": "2d1b2942-9064-4ff9-afe8-5bc53566067f",
+      "name": "Check Customer Exists",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -1680,
+        300
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.rows ? $json.rows.length : 0 }}",
+              "operation": "equal",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "97eac6ad-79cc-4883-a17f-14e71a6f57c5",
+      "name": "Is New Customer?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -1500,
+        300
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "477115632141067",
+        "recipientPhoneNumber": "={{ $json.messages[0].from }}",
+        "textBody": "Welcome! I'm your virtual assistant. To help you better, could you please provide your name, email, and address? For example, 'My name is John Smith, my email is john@example.com, and my address is 123 Main St, Cityville.'",
+        "additionalFields": {
+          "previewUrl": false
+        }
+      },
+      "id": "ec017a66-5687-43b4-8911-ecaa43113732",
+      "name": "Welcome New Customer",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        -1200,
+        40
+      ],
+      "typeVersion": 1,
+      "webhookId": "a74a094d-c33c-449b-999d-6cb292e74a93"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Create a new customer record for a brand new user\nconst output = [];\nconst item = {...$input.item};\n\n// Initialize new customer record with phone number\nitem.json.customerData = {\n  phone: $input.item.json.messages[0].from,\n  messageId: $input.item.json.messages[0].id,\n  timestamp: new Date().toISOString(),\n  query: $input.item.json.messages[0].text.body,\n  isNewCustomer: true,\n  totalInteractions: 1,\n  isRegistrationPending: true // Flag to indicate we're waiting for registration info\n};\n\noutput.push(item);\nreturn output;"
+      },
+      "id": "95558e74-5509-4d8c-8a73-13abe7aa3767",
+      "name": "Initialize New Customer",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -1200,
+        260
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO customers (phone_number, total_interactions) VALUES ('{{ $json.customerData.phone }}', 1);",
+        "additionalFields": {}
+      },
+      "id": "1a41fd4f-9a86-4973-9d8e-9ba255851e05",
+      "name": "Create New Customer Record",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -1000,
+        260
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Log initial welcome message in conversation history\nINSERT INTO conversations (customer_id, message_text, response_text, intent, sentiment, timestamp)\nVALUES (\n    (SELECT id FROM customers WHERE phone_number = '{{ $json.customerData.phone }}'),\n    '{{ $json.customerData.query }}',\n    'Welcome message sent. Awaiting registration information.',\n    'registration',\n    'neutral',\n    NOW()\n);",
+        "additionalFields": {}
+      },
+      "id": "80abf546-3cf1-4f39-b5be-15a79c86131f",
+      "name": "Log Welcome Message",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -800,
+        260
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customers SET total_interactions = total_interactions + 1, last_contact = NOW(), updated_at = NOW() WHERE phone_number = '{{ $json.messages[0].from }}' RETURNING *;",
+        "additionalFields": {}
+      },
+      "id": "1a41fd4f-9a86-4973-9d8e-9ba255851e09",
+      "name": "Update Existing Customer",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -1240,
+        520
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.rows && $json.rows[0] && ($json.rows[0].name === null || $json.rows[0].name === '') }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "9a77c5c4-94c8-4fde-bf30-c9b328b65455",
+      "name": "Is Registration Pending?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -1020,
+        520
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract customer details from their registration response\nconst output = [];\nconst item = {...$input.item};\n\nconst messageBody = $input.item.json.messages[0].text.body;\n\n// Extract potential name\nconst namePatterns = [\n  /my name is ([A-Za-z\\s\\.]+)/i,\n  /i am ([A-Za-z\\s\\.]+)/i,\n  /call me ([A-Za-z\\s\\.]+)/i,\n  /name[\\:\\s]+([A-Za-z\\s\\.]+)/i\n];\n\nlet extractedName = null;\nfor (const pattern of namePatterns) {\n  const nameMatch = messageBody.match(pattern);\n  if (nameMatch && nameMatch[1]) {\n    extractedName = nameMatch[1].trim();\n    break;\n  }\n}\n\n// Extract potential email\nconst emailPattern = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9._-]+)/i;\nlet extractedEmail = null;\nconst emailMatch = messageBody.match(emailPattern);\nif (emailMatch && emailMatch[1]) {\n  extractedEmail = emailMatch[1];\n}\n\n// Extract potential address\nconst addressPatterns = [\n  /my address is ([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /i live at ([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /address[\\:\\s]+([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /location[\\:\\s]+([A-Za-z0-9\\s,\\.\\-\\#]+)/i\n];\n\nlet extractedAddress = null;\nfor (const pattern of addressPatterns) {\n  const addressMatch = messageBody.match(pattern);\n  if (addressMatch && addressMatch[1]) {\n    extractedAddress = addressMatch[1].trim();\n    break;\n  }\n}\n\n// Store the extracted information\nitem.json.registrationData = {\n  phone_number: $input.item.json.messages[0].from,\n  name: extractedName,\n  email: extractedEmail,\n  address: extractedAddress\n};\n\n// Create customerData object for downstream nodes\nitem.json.customerData = {\n  id: $input.item.json.rows[0].id,\n  phone: $input.item.json.messages[0].from,\n  messageId: $input.item.json.messages[0].id,\n  timestamp: new Date().toISOString(),\n  query: $input.item.json.messages[0].text.body,\n  isNewCustomer: false,\n  totalInteractions: $input.item.json.rows[0].total_interactions,\n  name: extractedName || $input.item.json.rows[0].name,\n  email: extractedEmail || $input.item.json.rows[0].email,\n  address: extractedAddress || $input.item.json.rows[0].address\n};\n\noutput.push(item);\nreturn output;"
+      },
+      "id": "5050cb45-1351-4b1a-bb91-04baae011228",
+      "name": "Process Registration Info",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -800,
+        380
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Update the existing customer record with extracted info\nUPDATE customers \nSET \n    name = CASE WHEN '{{ $json.registrationData.name }}' != 'null' AND '{{ $json.registrationData.name }}' IS NOT NULL THEN '{{ $json.registrationData.name }}' ELSE name END,\n    email = CASE WHEN '{{ $json.registrationData.email }}' != 'null' AND '{{ $json.registrationData.email }}' IS NOT NULL THEN '{{ $json.registrationData.email }}' ELSE email END,\n    address = CASE WHEN '{{ $json.registrationData.address }}' != 'null' AND '{{ $json.registrationData.address }}' IS NOT NULL THEN '{{ $json.registrationData.address }}' ELSE address END,\n    updated_at = NOW()\nWHERE phone_number = '{{ $json.registrationData.phone_number }}'\nRETURNING *;",
+        "additionalFields": {}
+      },
+      "id": "236ecd61-db6f-421b-b68a-57301ba33f90",
+      "name": "Update Registration Info",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -600,
+        380
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "477115632141067",
+        "recipientPhoneNumber": "={{ $json.registrationData.phone_number }}",
+        "textBody": "={{ \"Thank you, \" + ($json.registrationData.name || \"valued customer\") + \"! Your information has been saved. How can I assist you today?\" }}",
+        "additionalFields": {
+          "previewUrl": false
+        }
+      },
+      "id": "86239d4c-2bac-44b7-8f76-a588aed25fe8",
+      "name": "Registration Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        -400,
+        380
+      ],
+      "typeVersion": 1,
+      "webhookId": "489df01a-b315-4baf-91ff-b6aca5909955"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Log registration confirmation in conversation history\nINSERT INTO conversations (customer_id, message_text, response_text, intent, sentiment, timestamp)\nVALUES (\n    (SELECT id FROM customers WHERE phone_number = '{{ $json.registrationData.phone_number }}'),\n    '{{ $json.customerData.query }}',\n    '{{ \"Thank you, \" + ($json.registrationData.name || \"valued customer\") + \"! Your information has been saved. How can I assist you today?\" }}',\n    'registration',\n    'positive',\n    NOW()\n);",
+        "additionalFields": {}
+      },
+      "id": "80abf546-3cf1-4f39-b5be-15a79c86131g",
+      "name": "Log Registration Response",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -200,
+        380
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "functionCode": "// Prepare customer data for normal AI processing\nconst output = [];\nconst item = {\n  json: {\n    customerData: {\n      id: $input.item.json.rows[0].id,\n      phone: $input.item.json.messages[0].from,\n      messageId: $input.item.json.messages[0].id,\n      timestamp: new Date().toISOString(),\n      query: $input.item.json.messages[0].text.body,\n      isNewCustomer: false,\n      totalInteractions: $input.item.json.rows[0].total_interactions,\n      name: $input.item.json.rows[0].name,\n      email: $input.item.json.rows[0].email,\n      address: $input.item.json.rows[0].address,\n      firstContact: $input.item.json.rows[0].created_at\n    },\n    originalMessage: $input.item.json\n  }\n};\n\noutput.push(item);\nreturn output;"
+      },
+      "id": "bd5e07d7-f699-4bcc-8184-3130e8881daa",
+      "name": "Prepare Customer Request",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -800,
+        620
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process analysis results and prepare for database\nconst output = [];\nconst item = {...$input.item};\n\n// Parse the analysis response\ntry {\n  const analysisText = $input.item.json.data.choices[0].message.content;\n  // Handle if response is already JSON or needs to be parsed\n  let analysis;\n  if (typeof analysisText === 'object') {\n    analysis = analysisText;\n  } else {\n    analysis = JSON.parse(analysisText);\n  }\n\n  // Add analysis to our data\n  item.json.analysis = {\n    intent: analysis.intent || 'unknown',\n    sentiment: analysis.sentiment || 'neutral',\n    keywords: analysis.keywords || [],\n    requiresHuman: analysis.requires_human || false,\n    productInterest: analysis.product_interest || []\n  };\n} catch (error) {\n  // Fallback if parsing fails\n  item.json.analysis = {\n    intent: 'unknown',\n    sentiment: 'neutral',\n    keywords: [],\n    requiresHuman: false,\n    productInterest: []\n  };\n  item.json.analysisError = error.message;\n}\n\n// Add system context for the AI\nlet systemContext = \"You are a helpful customer service and sales assistant. Your job is to assist customers in a friendly, professional manner. Use your company knowledge base to provide accurate information about products and services.\";\n\n// Add customer context if available\nif (item.json.customerData.name) {\n  systemContext += ` You're speaking with ${item.json.customerData.name}, who has interacted with our service ${item.json.customerData.totalInteractions} times.`;\n} else {\n  systemContext += ` This appears to be a customer who hasn't provided their name yet. Please be extra helpful and welcoming.`;\n  \n  // If this seems like a real conversation (not just a greeting),\n  // consider asking for their name\n  if (item.json.analysis.intent !== 'greeting' && \n      item.json.customerData.totalInteractions > 1) {\n    systemContext += \" If appropriate in your response, you may politely ask for their name to personalize future interactions.\";\n  }\n}\n\n// Add intent-specific guidance\nswitch(item.json.analysis.intent) {\n  case 'question':\n    systemContext += \" The customer is asking a question. Provide a clear, helpful answer based on the company knowledge base.\";\n    break;\n  case 'complaint':\n    systemContext += \" The customer appears to have a complaint. Be empathetic, apologize if appropriate, and try to address their concern.\";\n    break;\n  case 'purchase_inquiry':\n    systemContext += \" The customer is interested in making a purchase. Be helpful and encouraging.\";\n    if (item.json.analysis.productInterest && item.json.analysis.productInterest.length > 0) {\n      systemContext += ` They seem interested in: ${item.json.analysis.productInterest.join(', ')}.`;\n    }\n    break;\n  case 'support_request':\n    systemContext += \" The customer needs support. Try to help them using information from the knowledge base or offer to connect them with appropriate resources.\";\n    break;\n}\n\nitem.json.systemContext = systemContext;\n\noutput.push(item);\nreturn output;"
+      },
+      "id": "3cd74dbc-fbf5-4de0-84da-8618a684a964",
+      "name": "Process Analysis Results",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -120,
+        500
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract additional customer details from the conversation\nconst output = [];\nconst item = {...$input.item};\n\nconst messageBody = item.json.customerData.query;\nconst aiResponse = item.json.output || item.json.aiResponse;\n\n// Store the AI response for use in later nodes\nitem.json.aiResponse = aiResponse;\n\n// Extract potential name (simple pattern matching)\nconst namePatterns = [\n  /my name is ([A-Za-z\\s\\.]+)/i,\n  /i am ([A-Za-z\\s\\.]+)/i,\n  /call me ([A-Za-z\\s\\.]+)/i,\n  /name[\\:\\s]+([A-Za-z\\s\\.]+)/i\n];\n\nlet extractedName = null;\nfor (const pattern of namePatterns) {\n  const nameMatch = messageBody.match(pattern);\n  if (nameMatch && nameMatch[1]) {\n    extractedName = nameMatch[1].trim();\n    break;\n  }\n}\n\n// Extract potential email\nconst emailPattern = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9._-]+)/i;\nlet extractedEmail = null;\nconst emailMatch = messageBody.match(emailPattern);\nif (emailMatch && emailMatch[1]) {\n  extractedEmail = emailMatch[1];\n}\n\n// Extract potential address (simple pattern)\nconst addressPatterns = [\n  /my address is ([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /i live at ([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /address[\\:\\s]+([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /location[\\:\\s]+([A-Za-z0-9\\s,\\.\\-\\#]+)/i\n];\n\nlet extractedAddress = null;\nfor (const pattern of addressPatterns) {\n  const addressMatch = messageBody.match(pattern);\n  if (addressMatch && addressMatch[1]) {\n    extractedAddress = addressMatch[1].trim();\n    break;\n  }\n}\n\n// Store extractedData for database updating\nitem.json.extractedData = {\n  name: extractedName,\n  email: extractedEmail,\n  address: extractedAddress,\n  // Also include any product interests from analysis\n  productInterests: item.json.analysis.productInterest || []\n};\n\noutput.push(item);\nreturn output;"
+      },
+      "id": "9e53b387-387e-4df4-9935-5c24d5c38134",
+      "name": "Extract Customer Details",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        340,
+        260
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- This query updates any customer information that was extracted\nUPDATE customers\nSET \n    name = CASE WHEN '{{ $json.extractedData.name }}' != 'null' AND '{{ $json.extractedData.name }}' IS NOT NULL THEN '{{ $json.extractedData.name }}' ELSE name END,\n    email = CASE WHEN '{{ $json.extractedData.email }}' != 'null' AND '{{ $json.extractedData.email }}' IS NOT NULL THEN '{{ $json.extractedData.email }}' ELSE email END,\n    address = CASE WHEN '{{ $json.extractedData.address }}' != 'null' AND '{{ $json.extractedData.address }}' IS NOT NULL THEN '{{ $json.extractedData.address }}' ELSE address END,\n    last_contact = NOW(),\n    updated_at = NOW()\nWHERE phone_number = '{{ $json.customerData.phone }}';",
+        "additionalFields": {}
+      },
+      "id": "c61d5dbc-308e-4d60-8641-1554cb5b1227",
+      "name": "Update Customer Data",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        460,
+        400
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Insert the conversation into the logs\nINSERT INTO conversations (customer_id, message_text, response_text, intent, sentiment, timestamp)\nVALUES (\n    (SELECT id FROM customers WHERE phone_number = '{{ $json.customerData.phone }}'),\n    '{{ $json.customerData.query }}',\n    '{{ $json.aiResponse }}',\n    '{{ $json.analysis.intent }}',\n    '{{ $json.analysis.sentiment }}',\n    NOW()\n);",
+        "additionalFields": {}
+      },
+      "id": "80abf546-3cf1-4f39-b5be-15a79c86131d",
+      "name": "Log Conversation",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        620,
+        400
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.extractedData.productInterests && $json.extractedData.productInterests.length > 0 }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "2ffed823-dc74-48dc-bcd3-5904b2e07f69",
+      "name": "Record Product Interests",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        820,
+        400
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsCode": "// This code would typically insert product interests for tracking\n// Here we'll just pass through for now, but in a real implementation\n// you would connect to a product catalog and create interest records\n\n// The interest data is stored in $input.item.json.extractedData.productInterests\nreturn $input.item;\n"
+      },
+      "id": "13fddce0-4aaf-4b9c-bc00-e6bf51181376",
+      "name": "Update Product Interests",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1120,
+        240
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "477115632141067",
+        "recipientPhoneNumber": "={{ $json.messages[0].from }}",
+        "textBody": "I'm sorry, but I can only process text messages at the moment. Please send your question or request as text, and I'll be happy to assist you!",
+        "additionalFields": {
+          "previewUrl": false
+        }
+      },
+      "id": "6397c060-7987-4c9b-96b4-066b55af32c9",
+      "name": "Reply - Unsupported Message",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        -1660,
+        520
+      ],
+      "typeVersion": 1,
+      "webhookId": "f483c580-02c9-43c3-ba66-93bd96ef6c52"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "477115632141067",
+        "recipientPhoneNumber": "={{ $json.customerData.phone }}",
+        "textBody": "={{ $json.aiResponse }}",
+        "additionalFields": {
+          "previewUrl": false
+        }
+      },
+      "id": "63d526be-cf3f-45fd-bde0-6daddef2fbae",
+      "name": "Reply To Customer",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        1440,
+        480
+      ],
+      "typeVersion": 1,
+      "webhookId": "8700430f-95f2-4001-a219-137c06738146"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.analysis.requiresHuman }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "f24ee550-0302-4962-a5f2-1966db09c9ea",
+      "name": "Human Intervention Check",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1020,
+        480
+      ],
+      "typeVersion": 1
+    },
+    {
+  "parameters": {
+    "functionCode": "// This is a placeholder for human agent notification\n// In a real implementation, this would send an alert to a human\n// customer service representative through email, Slack, SMS, etc.\n\nconst output = [];\nconst item = {...$input.item};\n\n// Add human notification flag\nitem.json.humanNotification = {\n  sentAt: new Date().toISOString(),\n  customerPhone: item.json.customerData.phone,\n  customerName: item.json.customerData.name || 'Unknown',\n  issueType: item.json.analysis.intent,\n  message: item.json.customerData.query,\n  aiResponse: item.json.aiResponse\n};\n\nconsole.log('Human intervention required:', item.json.humanNotification);\n\noutput.push(item);\nreturn output;"
+  },
+  "id": "607e80b4-238f-4e05-8612-083a5f868669",
+  "name": "Notify Human Agent",
+  "type": "n8n-nodes-base.function",
+  "position": [
+    1200,
+    400
+  ],
+  "typeVersion": 1
+},
+{
+      "parameters": {},
+      "id": "c3ee3dbe-993c-43cd-b4ba-cd67f8a8a821",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        -1840,
+        760
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Create customers table\nCREATE TABLE IF NOT EXISTS customers (\n  id SERIAL PRIMARY KEY,\n  phone_number VARCHAR(20) UNIQUE NOT NULL,\n  name VARCHAR(100),\n  email VARCHAR(100),\n  address TEXT,\n  last_contact TIMESTAMP DEFAULT NOW(),\n  total_interactions INTEGER DEFAULT 1,\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);\n\n-- Create conversations table\nCREATE TABLE IF NOT EXISTS conversations (\n  id SERIAL PRIMARY KEY,\n  customer_id INTEGER REFERENCES customers(id),\n  message_text TEXT,\n  response_text TEXT,\n  intent VARCHAR(50),\n  sentiment VARCHAR(20),\n  timestamp TIMESTAMP DEFAULT NOW()\n);\n\n-- Create products table\nCREATE TABLE IF NOT EXISTS products (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(100) NOT NULL,\n  category VARCHAR(50),\n  description TEXT,\n  price DECIMAL(10, 2),\n  stock_status VARCHAR(20),\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);\n\n-- Create customer_interests table\nCREATE TABLE IF NOT EXISTS customer_interests (\n  id SERIAL PRIMARY KEY,\n  customer_id INTEGER REFERENCES customers(id),\n  product_id INTEGER REFERENCES products(id),\n  interest_level INTEGER,\n  first_expressed TIMESTAMP DEFAULT NOW(),\n  last_expressed TIMESTAMP DEFAULT NOW()\n);\n\n-- Create Indexes\nCREATE INDEX IF NOT EXISTS idx_customer_phone ON customers(phone_number);\nCREATE INDEX IF NOT EXISTS idx_conversation_customer ON conversations(customer_id);\nCREATE INDEX IF NOT EXISTS idx_customer_interests ON customer_interests(customer_id, product_id);",
+        "additionalFields": {}
+      },
+      "id": "da25ada1-f0fe-4fa7-a577-d43c3c8f6fda",
+      "name": "Initialize Database",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        -1600,
+        760
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://QDRANTURL/collections/COMPANY_KNOWLEDGE",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"vectors\": {\n    \"size\": 1536,\n    \"distance\": \"Cosine\"\n  }\n}",
+        "options": {}
+      },
+      "id": "dbd5feb8-e4fd-4f1d-a33a-3c4bf8cb6e40",
+      "name": "Create Collection",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1600,
+        940
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://QDRANTURL/collections/COMPANY_KNOWLEDGE/points/delete",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"filter\": {}\n}",
+        "options": {}
+      },
+      "id": "51eec051-cfb8-42fd-ad45-b1102b35d295",
+      "name": "Refresh Collection",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1600,
+        1140
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "filter": {
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive",
+            "cachedResultUrl": "https://drive.google.com/drive/my-drive",
+            "cachedResultName": "My Drive"
+          },
+          "folderId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "=company-knowledge"
+          }
+        },
+        "options": {}
+      },
+      "id": "5e8e09cb-82ad-4c2b-91c1-b3ef17166d1d",
+      "name": "Get Knowledge Folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        -1600,
+        1360
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "id": "6b5a8d80-4099-4f17-af6a-e1adf4db00f3",
+      "name": "Download Knowledge Files",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        -1280,
+        1080
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "b8ea9b11-2a20-4f95-a686-c58104c73adb",
+      "name": "Embeddings For Indexing",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        -1080,
+        1360
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "id": "1c8cb5c4-64a5-4e9e-98a3-d1d6526fe72a",
+      "name": "Knowledge Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "position": [
+        -860,
+        1360
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chunkSize": 300,
+        "chunkOverlap": 30
+      },
+      "id": "88cfb8f9-5756-48e1-a71b-d5ddba16715a",
+      "name": "Token Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterTokenSplitter",
+      "position": [
+        -940,
+        1500
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "mode": "id",
+          "value": "COMPANY_KNOWLEDGE"
+        },
+        "options": {}
+      },
+      "id": "1a203e23-1138-4083-bc12-10c2d14d3b9f",
+      "name": "Create Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "position": [
+        -920,
+        1040
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "={{ $json.customerData.query }}",
+        "options": {
+          "systemMessage": "={{ $json.systemContext }}"
+        }
+      },
+      "id": "8ededcd3-5f54-4312-8551-4dac30b96c57",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        40,
+        520
+      ],
+      "typeVersion": 1.7
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o"
+        },
+        "options": {}
+      },
+      "id": "34c05630-f765-40ce-af5a-e1af326ae029",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        -280,
+        900
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=whatsapp-{{ $json.customerData.phone }}"
+      },
+      "id": "d315c81a-99d1-4999-a8d1-e7bcabdfe17b",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        -120,
+        900
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "name": "company_knowledge",
+        "description": "Search for information in the company knowledge base including product specs, policies, and frequently asked questions."
+      },
+      "id": "cef9f9d9-de9b-4a7c-926d-720c0a7b96fb",
+      "name": "Knowledge Base Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "position": [
+        120,
+        800
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "qdrantCollection": {
+          "__rl": true,
+          "mode": "id",
+          "value": "COMPANY_KNOWLEDGE"
+        },
+        "options": {}
+      },
+      "id": "7c69ab76-7a63-4672-9f69-08f0d2ea5b2d",
+      "name": "Knowledge Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "position": [
+        -100,
+        1020
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o"
+        },
+        "options": {}
+      },
+      "id": "e3cc0861-340c-401c-ba24-764b2a7f6f62",
+      "name": "OpenAI Chat Model For Tool",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        260,
+        1020
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "2510d8b7-fbaf-4b70-a4d9-6d9dc384b90f",
+      "name": "Embeddings For Queries",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        -60,
+        1180
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are an AI assistant that analyzes customer messages to determine their intent and sentiment. Your analysis should be brief and to the point. Please analyze the following message and return a JSON object with these fields:\\n\\n1. intent: The primary intent (question, complaint, purchase_inquiry, support_request, feedback, greeting, other)\\n2. sentiment: The sentiment (positive, negative, neutral)\\n3. keywords: Array of important keywords from the message\\n4. requires_human: Boolean indicating if this requires human intervention\\n5. product_interest: Array of any products or product categories mentioned or implied\\n\\nProvide ONLY the JSON response with no additional text.",
+              "role": "system"
+            },
+            {
+              "content": "={{ $json.customerData.query }}",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -460,
+        580
+      ],
+      "id": "277f5f9b-8ba9-4a22-979d-83ca8ac7a21f",
+      "name": "OpenAI"
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Handle Message Types",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Message Types": {
+      "main": [
+        [
+          {
+            "node": "Check Customer Exists",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply - Unsupported Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Customer Exists": {
+      "main": [
+        [
+          {
+            "node": "Is New Customer?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Customer?": {
+      "main": [
+        [
+          {
+            "node": "Welcome New Customer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize New Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Existing Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Welcome New Customer": {
+      "main": [
+        []
+      ]
+    },
+    "Initialize New Customer": {
+      "main": [
+        [
+          {
+            "node": "Create New Customer Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New Customer Record": {
+      "main": [
+        [
+          {
+            "node": "Log Welcome Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Welcome Message": {
+      "main": [
+        []
+      ]
+    },
+    "Update Existing Customer": {
+      "main": [
+        [
+          {
+            "node": "Is Registration Pending?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Registration Pending?": {
+      "main": [
+        [
+          {
+            "node": "Process Registration Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Customer Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Registration Info": {
+      "main": [
+        [
+          {
+            "node": "Update Registration Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Registration Info": {
+      "main": [
+        [
+          {
+            "node": "Registration Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registration Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Log Registration Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Registration Response": {
+      "main": [
+        []
+      ]
+    },
+    "Process Analysis Results": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Extract Customer Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Customer Details": {
+      "main": [
+        [
+          {
+            "node": "Update Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Customer Data": {
+      "main": [
+        [
+          {
+            "node": "Log Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Conversation": {
+      "main": [
+        [
+          {
+            "node": "Record Product Interests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Product Interests": {
+      "main": [
+        [
+          {
+            "node": "Update Product Interests",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Human Intervention Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Product Interests": {
+      "main": [
+        [
+          {
+            "node": "Reply To Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human Intervention Check": {
+      "main": [
+        [
+          {
+            "node": "Notify Human Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply To Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Human Agent": {
+      "main": [
+        [
+          {
+            "node": "Reply To Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Initialize Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Database": {
+      "main": [
+        [
+          {
+            "node": "Create Collection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Collection": {
+      "main": [
+        [
+          {
+            "node": "Refresh Collection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh Collection": {
+      "main": [
+        [
+          {
+            "node": "Get Knowledge Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Knowledge Folder": {
+      "main": [
+        [
+          {
+            "node": "Download Knowledge Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Knowledge Files": {
+      "main": [
+        [
+          {
+            "node": "Create Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Token Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Knowledge Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings For Indexing": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Create Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Knowledge Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Create Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Knowledge Base Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Knowledge Vector Store": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Knowledge Base Tool",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings For Queries": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Knowledge Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model For Tool": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Knowledge Base Tool",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Customer Request": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Process Analysis Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "85a224b5-ad5a-47c9-9dc7-abfb60e4aa16",
+  "meta": {
+    "instanceId": "a2d4b5ba64d3b4fb732a743454316573c7eac58a745b0b8b6175a06c603ef800"
+  },
+  "id": "PP8YojrekAX8grxI",
+  "tags": []
+}

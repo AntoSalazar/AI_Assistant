@@ -132,18 +132,111 @@
       "typeVersion": 1
     },
     {
-      "id": "a7c2501d-d378-4052-9786-a3ec8cd68a56",
-      "name": "Create New Customer",
-      "type": "n8n-nodes-base.postgres",
+      "id": "welcome-new-customer-node",
+      "name": "Welcome New Customer",
+      "type": "n8n-nodes-base.whatsApp",
       "position": [
         1140,
         240
       ],
       "parameters": {
+        "operation": "send",
+        "phoneNumberId": "477115632141067",
+        "textBody": "Welcome! I'm your virtual assistant. To help you better, could you please provide your name, email, and address? For example, 'My name is John Smith, my email is john@example.com, and my address is 123 Main St, Cityville.'",
+        "additionalFields": {
+          "previewUrl": false
+        },
+        "recipientPhoneNumber": "={{ $json.messages[0].from }}"
+      },
+      "credentials": {
+        "whatsAppApi": {
+          "id": "9SFJPeqrpChOkAmw",
+          "name": "WhatsApp account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "flag-new-customer-node",
+      "name": "Flag New Customer",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        1140,
+        320
+      ],
+      "parameters": {
+        "functionCode": "// Mark this user as a new customer awaiting information\nconst output = [];\nconst item = {...$input.item};\n\n// Add flag to indicate this is a new customer awaiting registration\nitem.json.isNewCustomerRegistration = true;\n\n// Create a minimal customer record with just the phone number\nitem.json.customerData = {\n  phone: $input.item.json.messages[0].from,\n  messageId: $input.item.json.messages[0].id,\n  timestamp: new Date().toISOString(),\n  query: $input.item.json.messages[0].text.body,\n  isNewCustomer: true,\n  totalInteractions: 1\n};\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "d1f2c3e4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+      "name": "Update Existing Customer",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1140,
+        400
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customers SET total_interactions = total_interactions + 1, last_contact = NOW(), updated_at = NOW() WHERE phone_number = '{{ $json.messages[0].from }}' RETURNING id;",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "check-registration-status-node",
+      "name": "Check Registration Status",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1340,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.rows[0].total_interactions }}",
+              "operation": "equal",
+              "value2": 2
+            }
+          ]
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "process-registration-info-node",
+      "name": "Process Registration Info",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        1540,
+        340
+      ],
+      "parameters": {
+        "functionCode": "// Extract customer details from their response\nconst output = [];\nconst item = {...$input.item};\n\nconst messageBody = $input.item.json.messages[0].text.body;\n\n// Extract potential name\nconst namePatterns = [\n  /my name is ([A-Za-z\\s\\.]+)/i,\n  /i am ([A-Za-z\\s\\.]+)/i,\n  /call me ([A-Za-z\\s\\.]+)/i,\n  /name[\\:\\s]+([A-Za-z\\s\\.]+)/i\n];\n\nlet extractedName = null;\nfor (const pattern of namePatterns) {\n  const nameMatch = messageBody.match(pattern);\n  if (nameMatch && nameMatch[1]) {\n    extractedName = nameMatch[1].trim();\n    break;\n  }\n}\n\n// Extract potential email\nconst emailPattern = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9._-]+)/i;\nlet extractedEmail = null;\nconst emailMatch = messageBody.match(emailPattern);\nif (emailMatch && emailMatch[1]) {\n  extractedEmail = emailMatch[1];\n}\n\n// Extract potential address\nconst addressPatterns = [\n  /my address is ([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /i live at ([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /address[\\:\\s]+([A-Za-z0-9\\s,\\.\\-\\#]+)/i,\n  /location[\\:\\s]+([A-Za-z0-9\\s,\\.\\-\\#]+)/i\n];\n\nlet extractedAddress = null;\nfor (const pattern of addressPatterns) {\n  const addressMatch = messageBody.match(pattern);\n  if (addressMatch && addressMatch[1]) {\n    extractedAddress = addressMatch[1].trim();\n    break;\n  }\n}\n\n// Store the extracted information\nitem.json.registrationData = {\n  phone_number: $input.item.json.messages[0].from,\n  name: extractedName,\n  email: extractedEmail,\n  address: extractedAddress\n};\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "create-customer-record-node",
+      "name": "Create Customer Record",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1740,
+        340
+      ],
+      "parameters": {
         "operation": "insert",
         "table": "customers",
         "schema": "public",
-        "columns": "phone_number,created_at,updated_at",
+        "columns": "phone_number,name,email,address,created_at,updated_at",
         "returnFields": "id",
         "additionalFields": {},
         "valueDetails": {
@@ -151,7 +244,22 @@
             {
               "column": "phone_number",
               "type": "string",
-              "value": "={{ $json.messages[0].from }}"
+              "value": "={{ $json.registrationData.phone_number }}"
+            },
+            {
+              "column": "name",
+              "type": "string",
+              "value": "={{ $json.registrationData.name || 'Unknown' }}"
+            },
+            {
+              "column": "email",
+              "type": "string",
+              "value": "={{ $json.registrationData.email || '' }}"
+            },
+            {
+              "column": "address",
+              "type": "string",
+              "value": "={{ $json.registrationData.address || '' }}"
             },
             {
               "column": "created_at",
@@ -175,22 +283,26 @@
       "typeVersion": 1
     },
     {
-      "id": "d1f2c3e4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
-      "name": "Update Existing Customer",
-      "type": "n8n-nodes-base.postgres",
+      "id": "registration-confirmation-node",
+      "name": "Registration Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
       "position": [
-        1140,
-        400
+        1940,
+        340
       ],
       "parameters": {
-        "operation": "executeQuery",
-        "query": "UPDATE customers SET total_interactions = total_interactions + 1, last_contact = NOW(), updated_at = NOW() WHERE phone_number = '{{ $json.messages[0].from }}' RETURNING id;",
-        "additionalFields": {}
+        "textBody": "={{ \"Thank you, \" + ($json.registrationData.name || \"valued customer\") + \"! Your information has been saved. How can I assist you today?\" }}",
+        "operation": "send",
+        "phoneNumberId": "477115632141067",
+        "additionalFields": {
+          "previewUrl": false
+        },
+        "recipientPhoneNumber": "={{ $json.registrationData.phone_number }}"
       },
       "credentials": {
-        "postgres": {
-          "id": "client_database_creds",
-          "name": "Postgres Account"
+        "whatsAppApi": {
+          "id": "9SFJPeqrpChOkAmw",
+          "name": "WhatsApp account"
         }
       },
       "typeVersion": 1
@@ -273,7 +385,7 @@
         320
       ],
       "parameters": {
-        "functionCode": "// Process analysis results and prepare for database\nconst output = [];\nconst item = {...$input.item};\n\n// Parse the analysis response\ntry {\n  const analysisText = $input.item.json.data.choices[0].message.content;\n  // Handle if response is already JSON or needs to be parsed\n  let analysis;\n  if (typeof analysisText === 'object') {\n    analysis = analysisText;\n  } else {\n    analysis = JSON.parse(analysisText);\n  }\n\n  // Add analysis to our data\n  item.json.analysis = {\n    intent: analysis.intent || 'unknown',\n    sentiment: analysis.sentiment || 'neutral',\n    keywords: analysis.keywords || [],\n    requiresHuman: analysis.requires_human || false,\n    productInterest: analysis.product_interest || []\n  };\n} catch (error) {\n  // Fallback if parsing fails\n  item.json.analysis = {\n    intent: 'unknown',\n    sentiment: 'neutral',\n    keywords: [],\n    requiresHuman: false,\n    productInterest: []\n  };\n  item.json.analysisError = error.message;\n}\n\n// Add system context for the AI\nlet systemContext = \"You are a helpful customer service and sales assistant. Your job is to assist customers in a friendly, professional manner. Use your company knowledge base to provide accurate information about products and services.\";\n\n// Add customer context if available\nif (item.json.customerData.name) {\n  systemContext += ` You're speaking with ${item.json.customerData.name}, who has interacted with our service ${item.json.customerData.totalInteractions} times.`;\n} else {\n  systemContext += ` This appears to be a new customer. Please be extra helpful and welcoming.`;\n  \n  // If this seems like a real conversation (not just a greeting),\n  // consider asking for their name\n  if (item.json.analysis.intent !== 'greeting' && \n      item.json.customerData.totalInteractions > 1) {\n    systemContext += \" If appropriate in your response, you may politely ask for their name to personalize future interactions.\";\n  }\n}\n\n// Add intent-specific guidance\nswitch(item.json.analysis.intent) {\n  case 'question':\n    systemContext += \" The customer is asking a question. Provide a clear, helpful answer based on the company knowledge base.\";\n    break;\n  case 'complaint':\n    systemContext += \" The customer appears to have a complaint. Be empathetic, apologize if appropriate, and try to address their concern.\";\n    break;\n  case 'purchase_inquiry':\n    systemContext += \" The customer is interested in making a purchase. Be helpful and encouraging.\";\n    if (item.json.analysis.productInterest && item.json.analysis.productInterest.length > 0) {\n      systemContext += ` They seem interested in: ${item.json.analysis.productInterest.join(', ')}.`;\n    }\n    break;\n  case 'support_request':\n    systemContext += \" The customer needs support. Try to help them using information from the knowledge base or offer to connect them with appropriate resources.\";\n    break;\n}\n\nitem.json.systemContext = systemContext;\n\noutput.push(item);\nreturn output;"
+        "functionCode": "// Process analysis results and prepare for database\nconst output = [];\nconst item = {...$input.item};\n\n// If this is a new customer registration message, skip normal processing\nif (item.json.isNewCustomerRegistration) {\n  // Skip normal processing for new customers being registered\n  return output;\n}\n\n// Parse the analysis response\ntry {\n  const analysisText = $input.item.json.data.choices[0].message.content;\n  // Handle if response is already JSON or needs to be parsed\n  let analysis;\n  if (typeof analysisText === 'object') {\n    analysis = analysisText;\n  } else {\n    analysis = JSON.parse(analysisText);\n  }\n\n  // Add analysis to our data\n  item.json.analysis = {\n    intent: analysis.intent || 'unknown',\n    sentiment: analysis.sentiment || 'neutral',\n    keywords: analysis.keywords || [],\n    requiresHuman: analysis.requires_human || false,\n    productInterest: analysis.product_interest || []\n  };\n} catch (error) {\n  // Fallback if parsing fails\n  item.json.analysis = {\n    intent: 'unknown',\n    sentiment: 'neutral',\n    keywords: [],\n    requiresHuman: false,\n    productInterest: []\n  };\n  item.json.analysisError = error.message;\n}\n\n// Add system context for the AI\nlet systemContext = \"You are a helpful customer service and sales assistant. Your job is to assist customers in a friendly, professional manner. Use your company knowledge base to provide accurate information about products and services.\";\n\n// If this is interaction #2 and the customer is providing their info\nif (!item.json.isNewCustomerRegistration && \n    item.json.customerData.totalInteractions === 2) {\n  // Customize the system prompt for registration responses\n  systemContext = \"You are helping a new customer who is providing their registration information. Thank the customer and offer to help them with their first request.\";\n} else {\n  // Add customer context if available\n  if (item.json.customerData.name) {\n    systemContext += ` You're speaking with ${item.json.customerData.name}, who has interacted with our service ${item.json.customerData.totalInteractions} times.`;\n  } else {\n    systemContext += ` This appears to be a new customer. Please be extra helpful and welcoming.`;\n    \n    // If this seems like a real conversation (not just a greeting),\n    // consider asking for their name\n    if (item.json.analysis.intent !== 'greeting' && \n        item.json.customerData.totalInteractions > 1) {\n      systemContext += \" If appropriate in your response, you may politely ask for their name to personalize future interactions.\";\n    }\n  }\n\n  // Add intent-specific guidance\n  switch(item.json.analysis.intent) {\n    case 'question':\n      systemContext += \" The customer is asking a question. Provide a clear, helpful answer based on the company knowledge base.\";\n      break;\n    case 'complaint':\n      systemContext += \" The customer appears to have a complaint. Be empathetic, apologize if appropriate, and try to address their concern.\";\n      break;\n    case 'purchase_inquiry':\n      systemContext += \" The customer is interested in making a purchase. Be helpful and encouraging.\";\n      if (item.json.analysis.productInterest && item.json.analysis.productInterest.length > 0) {\n        systemContext += ` They seem interested in: ${item.json.analysis.productInterest.join(', ')}.`;\n      }\n      break;\n    case 'support_request':\n      systemContext += \" The customer needs support. Try to help them using information from the knowledge base or offer to connect them with appropriate resources.\";\n      break;\n  }\n}\n\nitem.json.systemContext = systemContext;\n\noutput.push(item);\nreturn output;"
       },
       "typeVersion": 1
     },
@@ -873,7 +985,7 @@
       "main": [
         [
           {
-            "node": "Create New Customer",
+            "node": "Welcome New Customer",
             "type": "main",
             "index": 0
           }
@@ -887,8 +999,48 @@
         ]
       ]
     },
-    "Create New Customer": {
+    "Welcome New Customer": {
       "main": [
+        [
+          {
+            "node": "Flag New Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flag New Customer": {
+      "main": [
+        [
+          {
+            "node": "Log Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Existing Customer": {
+      "main": [
+        [
+          {
+            "node": "Check Registration Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Registration Status": {
+      "main": [
+        [
+          {
+            "node": "Process Registration Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Merge Customer Data",
@@ -898,7 +1050,29 @@
         ]
       ]
     },
-    "Update Existing Customer": {
+    "Process Registration Info": {
+      "main": [
+        [
+          {
+            "node": "Create Customer Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Customer Record": {
+      "main": [
+        [
+          {
+            "node": "Registration Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registration Confirmation": {
       "main": [
         [
           {

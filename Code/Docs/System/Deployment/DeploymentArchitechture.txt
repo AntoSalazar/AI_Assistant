@@ -1,0 +1,76 @@
+Este diagrama de flujo representa la arquitectura técnica completa de un sistema chatbot empresarial con integración de WhatsApp. Te lo explico por capas:
+Capa de Usuario (User Layer)
+
+End Users: Los usuarios finales que interactúan con el sistema
+WhatsApp: La aplicación de mensajería que utilizan los usuarios
+
+Capa de API Gateway
+
+WhatsApp Business API: La API oficial de WhatsApp para empresas
+API Gateway: Punto de entrada centralizado que gestiona y enruta todas las solicitudes
+
+Servidor de Aplicación (Application Server)
+
+Web Server: Servidor web que maneja las solicitudes HTTP
+Redis Cache: Sistema de caché para almacenamiento de datos temporales y de rápido acceso
+
+Servicios de IA (AI Services)
+
+LLM Service: Servicio de Modelo de Lenguaje Grande que genera respuestas
+RAG Service: Servicio de Recuperación Aumentada de Generación que busca información relevante
+Vector Database: Base de datos vectorial para búsquedas semánticas
+
+Capa de Base de Datos (Database Layer)
+
+PostgreSQL Database: Base de datos relacional para almacenamiento estructurado
+Object Storage: Almacenamiento de objetos para datos no estructurados (archivos, imágenes, etc.)
+
+Monitoreo y Registro (Monitoring & Logging)
+
+Logging Service: Servicio que registra eventos y actividades del sistema
+Metrics Collector: Recopilador de métricas de rendimiento
+Monitoring Dashboard: Panel visual para supervisar el sistema en tiempo real
+
+Infraestructura en la Nube (Cloud Infrastructure)
+Engloba todas las capas técnicas del sistema:
+
+API Gateway
+Servidor de Aplicación
+Servicios de IA
+Capa de Base de Datos
+Monitoreo y Registro
+
+Integración Empresarial (Enterprise Integration)
+
+Integration Layer: Capa que facilita la comunicación con sistemas externos
+CRM System: Sistema de Gestión de Relaciones con Clientes
+ERP System: Sistema de Planificación de Recursos Empresariales
+
+Administración (Administration)
+
+Admin Dashboard: Panel de control para administradores del sistema
+
+Flujo de Datos
+El diagrama muestra cómo fluye la información:
+
+El usuario envía un mensaje a través de WhatsApp
+El mensaje pasa por la WhatsApp Business API al API Gateway
+El API Gateway lo dirige al Web Server
+El Web Server interactúa con los diversos componentes:
+
+Caché de Redis para datos temporales
+Servicio LLM para generar respuestas
+Servicio RAG para recuperar información relevante
+Base de datos PostgreSQL para datos estructurados
+Servicio de registro para monitoreo
+
+
+El servicio RAG consulta la base de datos vectorial
+La base de datos vectorial puede acceder al almacenamiento de objetos
+Los servicios de IA envían métricas al recolector
+Los registros y métricas alimentan el panel de monitoreo
+La base de datos interactúa con la capa de integración
+La capa de integración se conecta con sistemas CRM y ERP
+El panel de administración se comunica con el servidor web
+
+Este diagrama ofrece una visión completa de la arquitectura técnica del sistema, mostrando todas las capas y componentes necesarios para su funcionamiento, así como las interacciones entre ellos

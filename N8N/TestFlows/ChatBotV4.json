@@ -1,0 +1,1098 @@
+{
+  "meta": {
+    "instanceId": "whatsapp-ai-assistant-with-mcp"
+  },
+  "nodes": [
+    {
+      "id": "77ee6494-4898-47dc-81d9-35daf6f0beea",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "position": [
+        340,
+        400
+      ],
+      "webhookId": "aaa71f03-f7af-4d18-8d9a-0afb86f1b554",
+      "parameters": {
+        "updates": [
+          "messages"
+        ]
+      },
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "H3uYNtpeczKMqtYm",
+          "name": "WhatsApp OAuth account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "87cf9b41-66de-49a7-aeb0-c8809191b5a0",
+      "name": "Handle Message Types",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        540,
+        400
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "Text Messages",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "text"
+                  }
+                ]
+              },
+              "renameOutput": true
+            },
+            {
+              "outputKey": "Other Messages",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "89971d8c-a386-4e77-8f6c-f491a8e84cb6",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "text"
+                  }
+                ]
+              },
+              "renameOutput": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "typeVersion": 3.2
+    },
+    {
+      "id": "b10a9c82-db8e-42cf-92ff-a4639a3a4cc0",
+      "name": "Lookup Customer Data",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        740,
+        320
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT c.*, \n(SELECT json_agg(row_to_json(conv)) FROM (\n    SELECT message_text as content, 'user' as role, timestamp\n    FROM conversations\n    WHERE customer_id = c.id\n    ORDER BY timestamp DESC\n    LIMIT 5\n) as conv) as recent_messages\nFROM customers c\nWHERE phone_number = '{{ $json.messages[0].from }}' LIMIT 1;",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "4bf96c0d-eb1a-4c7d-a58c-23a98d602c88",
+      "name": "Is New Customer?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        940,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.rows ? $json.rows.length : 0 }}",
+              "operation": "equal",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "a7c2501d-d378-4052-9786-a3ec8cd68a56",
+      "name": "Create New Customer",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1140,
+        240
+      ],
+      "parameters": {
+        "operation": "insert",
+        "table": "customers",
+        "schema": "public",
+        "columns": "phone_number,created_at,updated_at",
+        "returnFields": "id",
+        "additionalFields": {},
+        "valueDetails": {
+          "values": [
+            {
+              "column": "phone_number",
+              "type": "string",
+              "value": "={{ $json.messages[0].from }}"
+            },
+            {
+              "column": "created_at",
+              "type": "string",
+              "value": "=NOW()"
+            },
+            {
+              "column": "updated_at",
+              "type": "string",
+              "value": "=NOW()"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "d1f2c3e4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+      "name": "Update Existing Customer",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        1140,
+        400
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customers SET total_interactions = total_interactions + 1, last_contact = NOW(), updated_at = NOW() WHERE phone_number = '{{ $json.messages[0].from }}' RETURNING id;",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "6089f6d5-33a1-43b2-8c04-51ddb3416ead",
+      "name": "Merge Customer Data",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        1340,
+        320
+      ],
+      "parameters": {
+        "mode": "passthrough",
+        "join": {
+          "output": "mergeByPosition"
+        },
+        "mergeByFields": {
+          "values": []
+        },
+        "options": {}
+      },
+      "typeVersion": 2.1
+    },
+    {
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "Initialize MCP Context",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        1540,
+        320
+      ],
+      "parameters": {
+        "functionCode": "// Initialize MCP Context for the WhatsApp AI Assistant\nconst output = [];\nconst item = {...$input.item};\n\n// Extract key information from the incoming message\nconst customerPhone = item.json.messages[0].from;\nconst userMessage = item.json.messages[0].text?.body || \"\";\nconst messageId = item.json.messages[0].id;\nconst timestamp = new Date().toISOString();\n\n// Check if we have customer data from the database\nconst customerData = item.json.rows && item.json.rows.length > 0 ? item.json.rows[0] : null;\nconst isNewCustomer = !customerData;\n\n// Initialize the Model Context Protocol structure\nconst mcpContext = {\n  // Metadata section - information about the conversation itself\n  metadata: {\n    conversation_id: `whatsapp-${customerPhone}`,\n    customer_phone: customerPhone,\n    timestamp: timestamp,\n    channel: \"whatsapp\",\n    message_id: messageId\n  },\n  \n  // System section - static guidance for the AI\n  system: {\n    instructions: \"You are a helpful customer service and sales assistant for our company. \"\n      + \"Your job is to assist customers in a friendly, professional manner. \"\n      + \"Use the knowledge base to provide accurate information about products and services.\",\n    constraints: \"Keep responses concise and appropriate for WhatsApp. Aim for 2-3 short paragraphs maximum. \"\n      + \"Don't fabricate information that isn't in your knowledge base.\",\n    goals: \"Help customers with support issues, answer product questions, and assist with purchases. \"\n      + \"Aim to resolve issues in a single conversation when possible.\"\n  },\n  \n  // User section - information about the customer\n  user: {\n    id: customerData?.id || null,\n    name: customerData?.name || null,\n    is_new_customer: isNewCustomer,\n    interaction_count: customerData?.total_interactions || 1,\n    known_preferences: [],\n    last_contact: customerData?.last_contact || null\n  },\n  \n  // Conversation section - message history and current message\n  conversation: {\n    messages: [],\n    current_message: userMessage\n  },\n  \n  // External section - relevant knowledge and tools\n  external: {\n    relevant_knowledge: [],\n    available_tools: [\n      {\n        name: \"knowledge_search\",\n        description: \"Search company knowledge base for information about products, policies, etc.\"\n      }\n    ]\n  },\n  \n  // State section - tracking the conversation state\n  state: {\n    current_intent: null,\n    requires_human: false,\n    sentiment: null,\n    stage: isNewCustomer ? \"greeting\" : \"ongoing\"\n  }\n};\n\n// Add customer-specific guidance if available\nif (customerData?.name) {\n  mcpContext.system.instructions += ` You're speaking with ${customerData.name}, `\n    + `who has interacted with our service ${customerData.total_interactions} times.`;\n} else {\n  mcpContext.system.instructions += \" This appears to be a new customer. \"\n    + \"Please be extra helpful and welcoming.\";\n}\n\n// Add recent conversation history if available\nif (customerData?.recent_messages && Array.isArray(customerData.recent_messages)) {\n  // Process and add recent messages to conversation history\n  const recentMessages = customerData.recent_messages\n    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))\n    .map(msg => ({\n      role: msg.role || \"user\",\n      content: msg.content,\n      timestamp: msg.timestamp\n    }));\n  \n  mcpContext.conversation.messages = recentMessages;\n}\n\n// Add the MCP context to our item\nitem.json.mcpContext = mcpContext;\n\n// Also retain the original message for reference\nitem.json.originalMessage = item.json.messages[0];\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "c4f7e5d3-b2a1-4983-ac57-eb2c5d9f31a8",
+      "name": "Analyze Message Intent",
+      "type": "n8n-nodes-base.openAi",
+      "position": [
+        1740,
+        320
+      ],
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system", 
+              "content": "You are an AI assistant that analyzes customer messages to determine their intent and sentiment. Your analysis should be brief and to the point. Please analyze the following message and return a JSON object with these fields:\n\n1. intent: The primary intent (question, complaint, purchase_inquiry, support_request, feedback, greeting, other)\n2. sentiment: The sentiment (positive, negative, neutral)\n3. keywords: Array of important keywords from the message\n4. requires_human: Boolean indicating if this requires human intervention\n5. product_interest: Array of any products or product categories mentioned or implied\n\nProvide ONLY the JSON response with no additional text."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.mcpContext.conversation.current_message }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 500
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "8gccIjcuf3gvaoEr",
+          "name": "OpenAi account"
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "a52b8394-c701-481d-b7ae-f6cd8e234f5d",
+      "name": "Update MCP with Analysis",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        1940,
+        320
+      ],
+      "parameters": {
+        "functionCode": "// Update the MCP context with intent analysis results\nconst output = [];\nconst item = {...$input.item};\nconst mcpContext = item.json.mcpContext;\n\n// Parse the analysis response\ntry {\n  const analysisText = $input.item.json.data.choices[0].message.content;\n  // Handle if response is already JSON or needs to be parsed\n  let analysis;\n  if (typeof analysisText === 'object') {\n    analysis = analysisText;\n  } else {\n    analysis = JSON.parse(analysisText);\n  }\n  \n  // Update the MCP state with analysis results\n  mcpContext.state.current_intent = analysis.intent || 'unknown';\n  mcpContext.state.sentiment = analysis.sentiment || 'neutral';\n  mcpContext.state.requires_human = analysis.requires_human || false;\n  \n  // Add any product interests identified\n  if (analysis.product_interest && analysis.product_interest.length > 0) {\n    mcpContext.state.product_interests = analysis.product_interest;\n  }\n  \n  // Update the MCP system instructions based on intent\n  // This enhances the guidance given to the AI based on the detected intent\n  switch(analysis.intent) {\n    case 'question':\n      mcpContext.system.instructions += \"\\n\\nThe customer is asking a question. Provide a clear, helpful answer based on the available knowledge.\";\n      break;\n    case 'complaint':\n      mcpContext.system.instructions += \"\\n\\nThe customer appears to have a complaint. Be empathetic, apologize if appropriate, and try to address their concern.\";\n      break;\n    case 'purchase_inquiry':\n      mcpContext.system.instructions += \"\\n\\nThe customer is interested in making a purchase. Be helpful and encouraging.\";\n      if (analysis.product_interest && analysis.product_interest.length > 0) {\n        mcpContext.system.instructions += ` They seem interested in: ${analysis.product_interest.join(', ')}.`;\n      }\n      break;\n    case 'support_request':\n      mcpContext.system.instructions += \"\\n\\nThe customer needs support. Try to help them using information from the knowledge base or offer to connect them with appropriate resources.\";\n      break;\n  }\n  \n  // Store the analysis for reference\n  mcpContext.analysis = analysis;\n  \n} catch (error) {\n  // Fallback if parsing fails\n  mcpContext.state.current_intent = 'unknown';\n  mcpContext.state.sentiment = 'neutral';\n  mcpContext.state.requires_human = false;\n  mcpContext.analysisError = error.message;\n}\n\n// Update the MCP context in our item\nitem.json.mcpContext = mcpContext;\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "b9c8d7e6-f5a4-3210-9876-54321abcdef0",
+      "name": "Generate RAG Query",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        2140,
+        320
+      ],
+      "parameters": {
+        "functionCode": "// Generate a search query for the RAG system based on the MCP context\nconst output = [];\nconst item = {...$input.item};\nconst mcpContext = item.json.mcpContext;\n\n// Extract key information to form a search query\nconst userMessage = mcpContext.conversation.current_message;\nconst intent = mcpContext.state.current_intent;\nconst keywords = mcpContext.analysis?.keywords || [];\nconst productInterests = mcpContext.state.product_interests || [];\n\n// Generate a search query for the RAG system\nlet searchQuery = userMessage; // Default to using the raw user message\n\n// If we have keywords, use those to enhance the search\nif (keywords.length > 0) {\n  // Combine the keywords into a focused search query\n  searchQuery = keywords.join(' ');\n}\n\n// If we have identified product interests, add those to the query\nif (productInterests.length > 0) {\n  searchQuery += ' ' + productInterests.join(' ');\n}\n\n// Store the search query in our item\nitem.json.ragQuery = searchQuery;\nitem.json.mcpContext = mcpContext;\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "f1e2d3c4-b5a6-9876-5432-1abcdef01234",
+      "name": "Query Knowledge Base",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "position": [
+        2340,
+        320
+      ],
+      "parameters": {
+        "mode": "query",
+        "textQuery": "={{ $json.ragQuery }}",
+        "k": 3,
+        "options": {},
+        "qdrantCollection": {
+          "__rl": true,
+          "mode": "id",
+          "value": "COMPANY_KNOWLEDGE"
+        }
+      },
+      "credentials": {
+        "qdrantApi": {
+          "id": "iyQ6MQiVaF3VMBmt",
+          "name": "QdrantApi account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "a9b8c7d6-e5f4-4321-8765-4321a9b8c7d6",
+      "name": "Add Knowledge to MCP",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        2540,
+        320
+      ],
+      "parameters": {
+        "functionCode": "// Add the retrieved knowledge to the MCP context\nconst output = [];\nconst item = {...$input.item};\nconst mcpContext = item.json.mcpContext;\n\n// Process the RAG results from Qdrant\nconst ragResults = $input.item.json.result?.documents || [];\n\n// Format the RAG results for the MCP context\nconst relevantKnowledge = ragResults.map((doc, index) => {\n  return {\n    content: doc.pageContent || doc.content || '',\n    source: doc.metadata?.source || 'knowledge_base',\n    relevance: 1 - (index * 0.1) // Simple relevance score decreasing with position\n  };\n});\n\n// Add the knowledge to the MCP context\nmcpContext.external.relevant_knowledge = relevantKnowledge;\n\n// If no knowledge was found, note that in the context\nif (relevantKnowledge.length === 0) {\n  mcpContext.external.relevant_knowledge = [{\n    content: \"No specific information found in the knowledge base. Please provide a general response based on common knowledge.\",\n    source: \"system\",\n    relevance: 0\n  }];\n}\n\n// Update the MCP context in our item\nitem.json.mcpContext = mcpContext;\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "d8c7b6a5-9e8f-4321-a9b8-c7d6e5f4a3b2",
+      "name": "MCP Prompt Builder",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        2740,
+        320
+      ],
+      "parameters": {
+        "functionCode": "// Build a structured prompt from the MCP context\nconst output = [];\nconst item = {...$input.item};\nconst mcpContext = item.json.mcpContext;\n\n// Build the system message with all relevant context\nlet systemMessage = mcpContext.system.instructions + \"\\n\\n\";\n\n// Add constraints and goals\nsystemMessage += \"Constraints: \" + mcpContext.system.constraints + \"\\n\\n\";\nsystemMessage += \"Goals: \" + mcpContext.system.goals + \"\\n\\n\";\n\n// Add user context if available\nif (mcpContext.user.name) {\n  systemMessage += `You are speaking with ${mcpContext.user.name} who has interacted with our service ${mcpContext.user.interaction_count} times.\\n\\n`;\n} else {\n  systemMessage += \"You are speaking with a new customer. Be welcoming and helpful.\\n\\n\";\n}\n\n// Add relevant knowledge from RAG\nif (mcpContext.external.relevant_knowledge.length > 0) {\n  systemMessage += \"RELEVANT KNOWLEDGE FROM COMPANY KNOWLEDGE BASE:\\n\";\n  \n  mcpContext.external.relevant_knowledge.forEach(knowledge => {\n    systemMessage += `---\\n${knowledge.content}\\nSource: ${knowledge.source}\\n---\\n\\n`;\n  });\n}\n\n// Create the messages array for OpenAI\nconst messages = [\n  {\n    role: \"system\",\n    content: systemMessage\n  }\n];\n\n// Add conversation history\nif (mcpContext.conversation.messages && mcpContext.conversation.messages.length > 0) {\n  mcpContext.conversation.messages.forEach(msg => {\n    messages.push({\n      role: msg.role,\n      content: msg.content\n    });\n  });\n}\n\n// Add the current user message\nmessages.push({\n  role: \"user\",\n  content: mcpContext.conversation.current_message\n});\n\n// Create the OpenAI parameters\nconst openAiParams = {\n  model: \"gpt-4o\",\n  messages: messages,\n  temperature: 0.7,\n  max_tokens: 500\n};\n\n// Store the prompt for use with OpenAI\nitem.json.prompt = openAiParams;\n\n// Keep the MCP context for reference\nitem.json.mcpContext = mcpContext;\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "e5f4a3b2-c7d6-4321-e5f4-a3b2c7d6e5f4",
+      "name": "Generate AI Response",
+      "type": "n8n-nodes-base.openAi",
+      "position": [
+        2940,
+        320
+      ],
+      "parameters": {
+        "resource": "chat",
+        "model": "={{ $json.prompt.model }}",
+        "prompt": {
+          "messages": "={{ $json.prompt.messages }}"
+        },
+        "options": {
+          "temperature": "={{ $json.prompt.temperature }}",
+          "maxTokens": "={{ $json.prompt.max_tokens }}"
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "8gccIjcuf3gvaoEr",
+          "name": "OpenAi account"
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "f4a3b2c7-d6e5-4321-f4a3-b2c7d6e5f4a3",
+      "name": "Process AI Response",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        3140,
+        320
+      ],
+      "parameters": {
+        "functionCode": "// Process the AI response and update the MCP context\nconst output = [];\nconst item = {...$input.item};\nconst mcpContext = item.json.mcpContext;\n\n// Get the response from OpenAI\nconst aiResponse = $input.item.json.data.choices[0].message.content;\n\n// Update the MCP conversation history with the new assistant message\nmcpContext.conversation.messages.push({\n  role: \"user\",\n  content: mcpContext.conversation.current_message,\n  timestamp: new Date().toISOString()\n});\n\nmcpContext.conversation.messages.push({\n  role: \"assistant\",\n  content: aiResponse,\n  timestamp: new Date().toISOString()\n});\n\n// Perform simple analysis on the response to update context state\nconst lowerResponse = aiResponse.toLowerCase();\n\n// Check if human intervention might be needed\nmcpContext.state.requires_human = (\n  lowerResponse.includes(\"i can't help with that\") ||\n  lowerResponse.includes(\"human agent\") ||\n  lowerResponse.includes(\"transfer you\") ||\n  lowerResponse.includes(\"specialist\")\n);\n\n// Try to determine conversation stage\nif (lowerResponse.includes(\"thank you\") && lowerResponse.includes(\"goodbye\")) {\n  mcpContext.state.stage = \"closing\";\n} else if (lowerResponse.includes(\"here's what you can do\") || lowerResponse.includes(\"solution\")) {\n  mcpContext.state.stage = \"solution\";\n} else if (lowerResponse.includes(\"could you tell me more\") || lowerResponse.includes(\"what exactly\")) {\n  mcpContext.state.stage = \"problem_definition\";\n} else if (lowerResponse.includes(\"welcome\") || lowerResponse.includes(\"how can i help\")) {\n  mcpContext.state.stage = \"greeting\";\n}\n\n// Extract potential customer information from the conversation\nconst extractedData = {\n  name: null,\n  email: null,\n  address: null\n};\n\n// Simple name extraction (just as an example)\nconst namePattern = /my name is ([A-Za-z\\s\\.]+)/i;\nconst nameMatch = mcpContext.conversation.current_message.match(namePattern);\nif (nameMatch && nameMatch[1]) {\n  extractedData.name = nameMatch[1].trim();\n}\n\n// Simple email extraction\nconst emailPattern = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9._-]+)/i;\nconst emailMatch = mcpContext.conversation.current_message.match(emailPattern);\nif (emailMatch && emailMatch[1]) {\n  extractedData.email = emailMatch[1];\n}\n\n// Store the updated MCP context and extracted data\nitem.json.mcpContext = mcpContext;\nitem.json.extractedData = extractedData;\nitem.json.aiResponse = aiResponse;\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "a9b8c7d6-e5f4-4321-8765-4321a9b8c7d6",
+      "name": "Update Customer Data",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        3340,
+        320
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Update customer information if any was extracted\nUPDATE customers\nSET \n    name = CASE WHEN '{{ $json.extractedData.name }}' != 'null' THEN '{{ $json.extractedData.name }}' ELSE name END,\n    email = CASE WHEN '{{ $json.extractedData.email }}' != 'null' THEN '{{ $json.extractedData.email }}' ELSE email END,\n    last_contact = NOW(),\n    updated_at = NOW()\nWHERE phone_number = '{{ $json.mcpContext.metadata.customer_phone }}';",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "7a8b9c0d-e1f2-3456-7890-a1b2c3d4e5f6",
+      "name": "Save MCP Context",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        3340,
+        240
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Save or update the MCP context\nINSERT INTO mcp_contexts (conversation_id, context, last_updated)\nVALUES (\n    '{{ $json.mcpContext.metadata.conversation_id }}',\n    '{{ $json.mcpContext | stringify }}',\n    NOW()\n)\nON CONFLICT (conversation_id)\nDO UPDATE SET\n    context = '{{ $json.mcpContext | stringify }}',\n    last_updated = NOW();",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "d8c7b6a5-9e8f-4321-a9b8-c7d6e5f4a3b2",
+      "name": "Log Conversation",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        3340,
+        400
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Insert the conversation into the logs\nINSERT INTO conversations (customer_id, message_text, response_text, intent, sentiment, timestamp)\nVALUES (\n    (SELECT id FROM customers WHERE phone_number = '{{ $json.mcpContext.metadata.customer_phone }}'),\n    '{{ $json.mcpContext.conversation.current_message }}',\n    '{{ $json.aiResponse }}',\n    '{{ $json.mcpContext.state.current_intent }}',\n    '{{ $json.mcpContext.state.sentiment }}',\n    NOW()\n);",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "1ae5a311-36d7-4454-ab14-6788d1331780",
+      "name": "Reply To Customer",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        3540,
+        320
+      ],
+      "parameters": {
+        "textBody": "={{ $json.aiResponse }}",
+        "operation": "send",
+        "phoneNumberId": "477115632141067",
+        "requestOptions": {},
+        "additionalFields": {
+          "previewUrl": false
+        },
+        "recipientPhoneNumber": "={{ $json.mcpContext.metadata.customer_phone }}"
+      },
+      "credentials": {
+        "whatsAppApi": {
+          "id": "9SFJPeqrpChOkAmw",
+          "name": "WhatsApp account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "7a9b8c7d-e6f5-4321-a2b3-c4d5e6f7a8b9",
+      "name": "Human Intervention Check",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        3340,
+        480
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.mcpContext.state.requires_human }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "b9a8c7d6-e5f4-3210-b9a8-c7d6e5f43210",
+      "name": "Notify Human Agent",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        3540,
+        560
+      ],
+      "parameters": {
+        "functionCode": "// This is a placeholder for human agent notification\n// In a real implementation, this would send an alert to a human\n// customer service representative through email, Slack, SMS, etc.\n\nconst output = [];\nconst item = {...$input.item};\nconst mcpContext = item.json.mcpContext;\n\n// Add human notification flag\nitem.json.humanNotification = {\n  sentAt: new Date().toISOString(),\n  customerPhone: mcpContext.metadata.customer_phone,\n  customerName: mcpContext.user.name || 'Unknown',\n  issueType: mcpContext.state.current_intent,\n  message: mcpContext.conversation.current_message,\n  aiResponse: item.json.aiResponse,\n  conversationId: mcpContext.metadata.conversation_id\n};\n\nconsole.log('Human intervention required:', item.json.humanNotification);\n\noutput.push(item);\nreturn output;"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "b6efba81-18b0-4378-bb91-51f39ca57f3e",
+      "name": "Reply - Unsupported Message",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        740,
+        520
+      ],
+      "parameters": {
+        "textBody": "I'm sorry, but I can only process text messages at the moment. Please send your question or request as text, and I'll be happy to assist you!",
+        "operation": "send",
+        "phoneNumberId": "477115632141067",
+        "requestOptions": {},
+        "additionalFields": {
+          "previewUrl": false
+        },
+        "recipientPhoneNumber": "={{ $json.messages[0].from }}"
+      },
+      "credentials": {
+        "whatsAppApi": {
+          "id": "9SFJPeqrpChOkAmw",
+          "name": "WhatsApp account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "9dd89378-5acf-4ca6-8d84-e6e64254ed02",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        520,
+        640
+      ],
+      "parameters": {},
+      "typeVersion": 1
+    },
+    {
+      "id": "3e5a112d-d0f8-4c19-82c7-8a62bd5e8af4",
+      "name": "Initialize Database",
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        740,
+        640
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Create customers table\nCREATE TABLE IF NOT EXISTS customers (\n  id SERIAL PRIMARY KEY,\n  phone_number VARCHAR(20) UNIQUE NOT NULL,\n  name VARCHAR(100),\n  email VARCHAR(100),\n  address TEXT,\n  last_contact TIMESTAMP DEFAULT NOW(),\n  total_interactions INTEGER DEFAULT 1,\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);\n\n-- Create conversations table\nCREATE TABLE IF NOT EXISTS conversations (\n  id SERIAL PRIMARY KEY,\n  customer_id INTEGER REFERENCES customers(id),\n  message_text TEXT,\n  response_text TEXT,\n  intent VARCHAR(50),\n  sentiment VARCHAR(20),\n  timestamp TIMESTAMP DEFAULT NOW()\n);\n\n-- Create products table\nCREATE TABLE IF NOT EXISTS products (\n  id SERIAL PRIMARY KEY,\n  name VARCHAR(100) NOT NULL,\n  category VARCHAR(50),\n  description TEXT,\n  price DECIMAL(10, 2),\n  stock_status VARCHAR(20),\n  created_at TIMESTAMP DEFAULT NOW(),\n  updated_at TIMESTAMP DEFAULT NOW()\n);\n\n-- Create customer_interests table\nCREATE TABLE IF NOT EXISTS customer_interests (\n  id SERIAL PRIMARY KEY,\n  customer_id INTEGER REFERENCES customers(id),\n  product_id INTEGER REFERENCES products(id),\n  interest_level INTEGER,\n  first_expressed TIMESTAMP DEFAULT NOW(),\n  last_expressed TIMESTAMP DEFAULT NOW()\n);\n\n-- Create MCP contexts table\nCREATE TABLE IF NOT EXISTS mcp_contexts (\n  id SERIAL PRIMARY KEY,\n  conversation_id VARCHAR(100) UNIQUE NOT NULL,\n  context JSONB NOT NULL,\n  last_updated TIMESTAMP DEFAULT NOW()\n);\n\n-- Create Indexes\nCREATE INDEX IF NOT EXISTS idx_customer_phone ON customers(phone_number);\nCREATE INDEX IF NOT EXISTS idx_conversation_customer ON conversations(customer_id);\nCREATE INDEX IF NOT EXISTS idx_customer_interests ON customer_interests(customer_id, product_id);\nCREATE INDEX IF NOT EXISTS idx_mcp_conversation_id ON mcp_contexts(conversation_id);",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "client_database_creds",
+          "name": "Postgres Account"
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "619d2d2f-7a1e-49ba-a3ae-24bf24287dd2",
+      "name": "Create Collection",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        760,
+        800
+      ],
+      "parameters": {
+        "url": "https://QDRANTURL/collections/COMPANY_KNOWLEDGE",
+        "method": "POST",
+        "options": {},
+        "jsonBody": "{\n  \"vectors\": {\n    \"size\": 1536,\n    \"distance\": \"Cosine\"\n  }\n}",
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "qhny6r5ql9wwotpn",
+          "name": "Qdrant API Key"
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "b61d5d74-14d2-4488-a0d6-3f7df9745329",
+      "name": "Refresh Collection",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        760,
+        880
+      ],
+      "parameters": {
+        "url": "https://QDRANTURL/collections/COMPANY_KNOWLEDGE/points/delete",
+        "method": "POST",
+        "options": {},
+        "jsonBody": "{\n  \"filter\": {}\n}",
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "qhny6r5ql9wwotpn",
+          "name": "Qdrant API Key"
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "71c8817f-f5be-4900-aecc-14d483993c4c",
+      "name": "Get Knowledge Folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        760,
+        960
+      ],
+      "parameters": {
+        "filter": {
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive",
+            "cachedResultUrl": "https://drive.google.com/drive/my-drive",
+            "cachedResultName": "My Drive"
+          },
+          "folderId": { "__rl": true,
+            "mode": "id",
+            "value": "=company-knowledge"
+          }
+        },
+        "options": {},
+        "resource": "fileFolder"
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HEy5EuZkgPZVEa9w",
+          "name": "Google Drive account"
+        }
+      },
+      "typeVersion": 3
+    },
+    {
+      "id": "c14e570d-527d-4cc2-b0c0-2406b814ffc6",
+      "name": "Download Knowledge Files",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        970,
+        960
+      ],
+      "parameters": {
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        },
+        "operation": "download"
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HEy5EuZkgPZVEa9w",
+          "name": "Google Drive account"
+        }
+      },
+      "typeVersion": 3
+    },
+    {
+      "id": "7f1ffbd5-7aa0-49d3-aa11-9568ac704d6e",
+      "name": "Embeddings For Indexing",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        970,
+        1040
+      ],
+      "parameters": {
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "8gccIjcuf3gvaoEr",
+          "name": "OpenAi account"
+        }
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "bdc58292-5880-41b9-bc55-d6437f037629",
+      "name": "Knowledge Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "position": [
+        1180,
+        1040
+      ],
+      "parameters": {
+        "options": {},
+        "dataType": "binary"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "7df52ba0-011e-44a5-b25d-a4610f903ed9",
+      "name": "Token Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterTokenSplitter",
+      "position": [
+        1180,
+        1120
+      ],
+      "parameters": {
+        "chunkSize": 300,
+        "chunkOverlap": 30
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "99de11b0-ab4a-49fe-977b-b3102c9ff1cf",
+      "name": "Create Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "position": [
+        1390,
+        960
+      ],
+      "parameters": {
+        "mode": "insert",
+        "options": {},
+        "qdrantCollection": {
+          "__rl": true,
+          "mode": "id",
+          "value": "COMPANY_KNOWLEDGE"
+        }
+      },
+      "credentials": {
+        "qdrantApi": {
+          "id": "iyQ6MQiVaF3VMBmt",
+          "name": "QdrantApi account"
+        }
+      },
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Handle Message Types",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Message Types": {
+      "main": [
+        [
+          {
+            "node": "Lookup Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply - Unsupported Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Customer Data": {
+      "main": [
+        [
+          {
+            "node": "Is New Customer?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Customer?": {
+      "main": [
+        [
+          {
+            "node": "Create New Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Existing Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New Customer": {
+      "main": [
+        [
+          {
+            "node": "Merge Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Existing Customer": {
+      "main": [
+        [
+          {
+            "node": "Merge Customer Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Customer Data": {
+      "main": [
+        [
+          {
+            "node": "Initialize MCP Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize MCP Context": {
+      "main": [
+        [
+          {
+            "node": "Analyze Message Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Message Intent": {
+      "main": [
+        [
+          {
+            "node": "Update MCP with Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update MCP with Analysis": {
+      "main": [
+        [
+          {
+            "node": "Generate RAG Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate RAG Query": {
+      "main": [
+        [
+          {
+            "node": "Query Knowledge Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Knowledge Base": {
+      "main": [
+        [
+          {
+            "node": "Add Knowledge to MCP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Knowledge to MCP": {
+      "main": [
+        [
+          {
+            "node": "MCP Prompt Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Prompt Builder": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Response": {
+      "main": [
+        [
+          {
+            "node": "Process AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process AI Response": {
+      "main": [
+        [
+          {
+            "node": "Update Customer Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Save MCP Context",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Customer Data": {
+      "main": [
+        [
+          {
+            "node": "Reply To Customer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Human Intervention Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human Intervention Check": {
+      "main": [
+        [
+          {
+            "node": "Notify Human Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Initialize Database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Collection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Collection": {
+      "main": [
+        [
+          {
+            "node": "Refresh Collection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh Collection": {
+      "main": [
+        [
+          {
+            "node": "Get Knowledge Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Knowledge Folder": {
+      "main": [
+        [
+          {
+            "node": "Download Knowledge Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Knowledge Files": {
+      "main": [
+        [
+          {
+            "node": "Create Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Token Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Knowledge Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings For Indexing": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Create Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Knowledge Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Create Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

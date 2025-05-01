@@ -1,0 +1,64 @@
+Te explico este diagrama de secuencia que ilustra el flujo de comunicación entre varios componentes de un sistema de chatbot integrado con WhatsApp:
+Participantes del Sistema
+
+User (U): El usuario final que inicia la conversación
+WhatsApp API (W): API de WhatsApp que gestiona la comunicación entre usuarios y el sistema
+Message Handler (M): Componente que procesa los mensajes entrantes y salientes
+Conversation Manager (C): Gestiona el contexto de la conversación y su flujo
+Intent Classifier (I): Clasifica la intención del mensaje del usuario
+LLM Service (L): Servicio de modelo de lenguaje que genera respuestas
+RAG System (R): Sistema de Recuperación Aumentada de Generación para buscar información relevante
+Knowledge Base (K): Base de conocimientos donde se almacena la información
+Business Rules (B): Reglas de negocio que determinan cómo responder
+Escalation Service (E): Servicio que gestiona la derivación a agentes humanos
+Human Agent (A): Agente humano que puede intervenir en conversaciones complejas
+
+Flujo de la Conversación
+Inicio de la Conversación
+
+El usuario envía un mensaje a través de WhatsApp
+La API de WhatsApp reenvía el mensaje al Message Handler
+El Message Handler procesa el mensaje y lo envía al Conversation Manager
+El Conversation Manager actualiza el contexto de la conversación
+El Conversation Manager envía el mensaje al Intent Classifier para determinar la intención
+
+Procesamiento según la Intención
+El diagrama muestra cuatro caminos alternativos según la intención detectada:
+1. Consulta de FAQ o Conocimiento General
+
+El Intent Classifier solicita información relevante al RAG System
+El RAG System busca en la Knowledge Base
+La Knowledge Base devuelve documentos relevantes
+El RAG System proporciona el contexto y documentos al LLM Service
+El LLM Service genera una respuesta con el contexto y la envía al Conversation Manager
+
+2. Solicitud de Atención al Cliente
+
+El Intent Classifier consulta las Business Rules
+Las Business Rules proporcionan instrucciones de manejo al LLM Service
+El LLM Service genera una respuesta de soporte y la envía al Conversation Manager
+
+3. Intención de Compra
+
+El Intent Classifier verifica la información del producto en las Business Rules
+Las Business Rules proporcionan detalles del producto al LLM Service
+El LLM Service genera una respuesta orientada a ventas
+
+4. Consulta Compleja
+
+El Intent Classifier escala la consulta al Escalation Service
+El Escalation Service alerta a un agente humano y proporciona el contexto
+El agente humano toma el control de la conversación
+
+Envío de la Respuesta
+
+El Conversation Manager formatea la respuesta
+El Message Handler envía la respuesta a la API de WhatsApp
+La API de WhatsApp entrega la respuesta al usuario
+
+Recolección de Feedback (Proceso Paralelo)
+
+El Conversation Manager registra la conversación
+El Conversation Manager analiza la conversación para mejoras futuras
+
+Este diagrama ilustra claramente el proceso completo desde que un usuario envía un mensaje hasta que recibe una respuesta, mostrando las diferentes rutas que puede tomar el sistema según la intención detectada en el mensaje del usuario, así como los componentes involucrados en cada etapa del proceso.

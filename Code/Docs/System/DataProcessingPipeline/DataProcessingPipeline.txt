@@ -1,0 +1,53 @@
+Este diagrama de flujo ilustra un sistema completo de Recuperación Aumentada de Generación (RAG) para un chatbot. Te explico cada sección:
+1. Ingesta de Datos (Data Ingestion)
+La primera fase del sistema donde se recopilan datos de diversas fuentes:
+
+Datos de Productos: Información sobre productos y servicios
+FAQs y Documentos de Soporte: Preguntas frecuentes y material de ayuda
+Políticas y Reglas: Normas y directrices de la empresa
+Conversaciones de Entrenamiento: Diálogos previos para entrenar el sistema
+
+Todos estos datos pasan por conectores específicos que los alimentan a un pipeline ETL (Extracción, Transformación, Carga).
+2. Procesamiento de Datos (Data Processing)
+Los datos recopilados pasan por varias etapas de procesamiento:
+
+Limpieza de Datos: Elimina errores, duplicados y datos irrelevantes
+Transformación de Datos: Convierte los datos al formato adecuado
+Segmentación de Texto: Divide textos largos en fragmentos más pequeños
+Generación de Embeddings: Convierte texto en representaciones vectoriales
+
+3. Capa de Almacenamiento (Storage Layer)
+Los datos procesados se almacenan en diferentes sistemas:
+
+Base de Datos Vectorial: Almacena los embeddings para búsqueda semántica
+Base de Datos Relacional: Guarda datos estructurados
+Caché Redis: Almacena temporalmente información para acceso rápido
+
+4. Sistema de Recuperación (Retrieval System)
+Cuando llega una consulta del usuario:
+
+Procesador de Consultas: Analiza y prepara la consulta
+Embedding de Consulta: Convierte la consulta en un vector
+Búsqueda Vectorial: Busca vectores similares en la base de datos
+Documentos Relevantes: Recupera la información más pertinente
+Constructor de Contexto: Organiza la información recuperada
+Creador de Prompt: Prepara la instrucción para el modelo de lenguaje
+
+5. Generación de Respuesta (Response Generation)
+Con la información recuperada:
+
+LLM (GPT-4/LLaMA 2): El modelo de lenguaje genera una respuesta
+Validador de Respuesta: Verifica la calidad y precisión
+Formateador de Respuesta: Ajusta el formato para su presentación
+Respuesta Final: Envía la respuesta al usuario
+
+6. Ciclo de Retroalimentación (Feedback Loop)
+Para mejorar continuamente:
+
+Registrador de Conversaciones: Guarda todas las interacciones
+Motor de Analítica: Analiza las conversaciones
+Generador de Insights: Identifica patrones y áreas de mejora
+Ajustador de Modelo: Optimiza el modelo según los insights
+El ciclo se cierra conectando de nuevo con el LLM para mejoras continuas
+
+Este diagrama muestra claramente cómo funciona un sistema RAG completo, desde la ingesta de datos hasta la generación de respuestas y la mejora continua a través del ciclo de retroalimentación. Cada color representa una etapa diferente del proceso, facilitando la comprensión visual del flujo de información.

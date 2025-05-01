@@ -1,0 +1,75 @@
+Lado del Cliente (Client Side)
+
+Usuario: El usuario final que desea interactuar con el sistema
+Aplicación WhatsApp: La interfaz que utiliza el usuario para enviar mensajes
+
+Capa de Integración (Integration Layer)
+
+WhatsApp Business API: La API oficial que permite la comunicación empresarial a través de WhatsApp
+Servicio Manejador de Mensajes: Procesa los mensajes entrantes y salientes
+
+Sistema de IA Central (Core AI System)
+El núcleo del sistema, destacado en color rosa:
+
+Gestor de Conversaciones: Coordina todo el flujo de la conversación
+Rastreador de Contexto: Mantiene el contexto de la conversación activa
+Clasificador de Intenciones: Identifica el propósito del mensaje del usuario
+Servicio LLM: Utiliza modelos como GPT-4 o LLaMA 2 para generar respuestas
+Gestor de Ingeniería de Prompts: Optimiza las instrucciones para el LLM
+Sistema RAG: Recupera información relevante para mejorar las respuestas
+
+Capa de Conocimiento y Datos (Knowledge & Data Layer)
+En color azul claro:
+
+Base de Datos Vectorial: Almacena representaciones vectoriales del conocimiento
+Base de Conocimientos: Repositorio central de información
+Motor de Reglas de Negocio: Define cómo responder a diferentes situaciones
+Servicio de Integración Backend: Conecta con sistemas empresariales
+
+Integraciones Empresariales (Enterprise Integrations)
+En color rosa claro:
+
+Sistema CRM: Gestión de relaciones con clientes
+Catálogo de Productos: Información sobre productos y servicios
+Gestión de Pedidos: Sistema para manejar pedidos y transacciones
+
+Análisis y Monitoreo (Analytics & Monitoring)
+En color púrpura claro:
+
+Motor de Análisis: Procesa datos de conversaciones
+Panel de Administración: Interfaz para supervisar el sistema
+Servicio de Informes: Genera reportes y estadísticas
+Entrenamiento y Mejora de Modelos: Retroalimentación para mejorar el LLM
+
+Soporte Humano (Human Support)
+En color amarillo claro:
+
+Servicio de Escalamiento: Determina cuándo transferir a un agente humano
+Interfaz de Agente Humano: Herramienta para que los agentes intervengan
+Agente de Soporte al Cliente: Personal humano que atiende casos complejos
+
+Flujo de Información
+El diagrama muestra mediante flechas bidireccionales cómo los diferentes componentes interactúan entre sí:
+
+El usuario envía un mensaje a través de WhatsApp
+El mensaje pasa por la API de WhatsApp al Manejador de Mensajes
+El Gestor de Conversaciones coordina la respuesta utilizando varios servicios:
+
+El Rastreador de Contexto para mantener la coherencia
+El Clasificador de Intenciones para entender el propósito
+El Servicio LLM para generar respuestas
+
+
+El Servicio LLM utiliza:
+
+El Gestor de Prompts para optimizar instrucciones
+El Sistema RAG para obtener información relevante
+
+
+El Sistema RAG busca en la Base de Datos Vectorial
+El Clasificador de Intenciones consulta el Motor de Reglas de Negocio
+El Motor de Reglas de Negocio se conecta con sistemas empresariales
+Si es necesario, la conversación se escala a un agente humano
+Todo el proceso alimenta el Motor de Análisis para mejora continua
+
+Este diagrama proporciona una visión clara y completa de todos los componentes funcionales del sistema y cómo interactúan entre sí para proporcionar un servicio de chatbot empresarial efectivo e inteligente.
